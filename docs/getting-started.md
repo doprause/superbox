@@ -136,7 +136,7 @@ USE_LETSENCRYPT=false
 DOMAIN=superbox.local
 ```
 
-In this case, configure a self-signed certificate or [mkcert](https://github.com/FiloSottile/mkcert) CA and mount it into Traefik.
+`setup.sh` automatically generates a self-signed certificate for your `DOMAIN` and stores it in `data/traefik/certs/`. Traefik uses this as the default TLS certificate when no ACME cert is available. Browsers will show a security warning — you can suppress it by adding the certificate to your OS trust store, or replace it with a [mkcert](https://github.com/FiloSottile/mkcert) CA-signed certificate.
 
 ### 2. Configure DNS
 
