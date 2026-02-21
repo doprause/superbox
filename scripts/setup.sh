@@ -297,9 +297,27 @@ for dir in "${DATA_DIRS[@]}"; do
   log "Created $dir"
 done
 
-# Set ownership
+# Set ownership — default all dirs to PUID:PGID
 chown -R "${PUID}:${PGID}" "$ROOT_DIR/data" 2>/dev/null || \
   warn "Could not set ownership on data/ (run as root or adjust PUID/PGID)"
+
+# Fix ownership for containers that run as specific non-root UIDs.
+# These containers are forced to their internal UID via compose 'user:' and cannot
+# chown a directory they don't own, so we must pre-set ownership here.
+# Uses 'docker run' so this works without sudo regardless of the host user.
+chown_via_docker() {
+  local uid_gid="$1" dir="$2"
+  if [ -d "$dir" ]; then
+    docker run --rm -v "$dir:/data" alpine chown "$uid_gid" /data 2>/dev/null || \
+      warn "Could not set ownership on $dir — start Docker first if this fails"
+  fi
+}
+log "Setting container-specific data directory ownership..."
+chown_via_docker "70:70"      "$ROOT_DIR/data/authentik-db"          # postgres:16-alpine uid 70
+chown_via_docker "999:999"    "$ROOT_DIR/data/authentik-redis"        # redis:7-alpine uid 999
+chown_via_docker "65534:65534" "$ROOT_DIR/data/monitoring/prometheus"  # prom/prometheus runs as nobody
+chown_via_docker "65534:65534" "$ROOT_DIR/data/monitoring/alertmanager" # prom/alertmanager runs as nobody
+chown_via_docker "472:472"    "$ROOT_DIR/data/monitoring/grafana"     # grafana/grafana uid 472
 
 # ---------------------------------------------------------------------------
 # 5. Create and secure acme.json
