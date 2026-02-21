@@ -16,4 +16,5 @@
 | [Passwords](passwords.md) | Bitwarden Lite — setup, clients, admin portal |
 | [Provisioning](provisioning.md) | Ansible playbook, roles, ZFS storage |
 | [Security](security.md) | Hardening reference, middleware chains, secrets |
+| [Testing](testing.md) | Step-by-step validation guide — local setup, smoke tests, IaC round-trip |
 | [Troubleshooting](troubleshooting.md) | Common issues and diagnostic commands |
