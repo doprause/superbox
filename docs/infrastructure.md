@@ -1,0 +1,176 @@
+# Infrastructure
+
+The infrastructure module is the mandatory foundation of the stack. It handles all inbound traffic, TLS termination, threat detection, and secure Docker API access.
+
+**Location:** `services/infrastructure/`
+
+## Components
+
+| Container | Image | Role |
+|-----------|-------|------|
+| `traefik` | `traefik:v3.3` | Reverse proxy, TLS termination, Let's Encrypt |
+| `crowdsec` | `crowdsecurity/crowdsec:v1.6` | Log analysis and threat intelligence |
+| `bouncer-traefik` | `crowdsecurity/traefik-bouncer:v1.3` | Enforces CrowdSec ban decisions |
+| `socket-proxy` | `tecnativa/docker-socket-proxy:0.2` | Restricted Docker API proxy |
+
+---
+
+## Traefik
+
+### Static configuration
+
+`services/infrastructure/traefik/traefik.yml` is loaded once at startup. Key settings:
+
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| `entryPoints.web` | `:80` | HTTP — immediately redirects to HTTPS |
+| `entryPoints.websecure` | `:443` | HTTPS — TLS terminated here |
+| `entryPoints.metrics` | `:8899` | Internal Prometheus scrape endpoint |
+| `providers.docker.exposedByDefault` | `false` | Services must opt-in with `traefik.enable=true` |
+| `providers.docker.endpoint` | `tcp://socket-proxy:2375` | Uses Socket Proxy, not raw Docker socket |
+| `providers.file.directory` | `/etc/traefik/dynamic` | Watches for dynamic config changes |
+| `accessLog.filePath` | `/var/log/traefik/access.log` | JSON access log — required by CrowdSec |
+
+### Dynamic configuration
+
+Files in `services/infrastructure/traefik/dynamic/` are hot-reloaded without restarting Traefik.
+
+#### `middlewares.yml` — Middleware chains
+
+Four pre-defined chains cover all use cases:
+
+| Chain | Components | Use for |
+|-------|-----------|---------|
+| `chain-secure` | CrowdSec + Authentik forward auth + security headers + rate limit | Public services requiring login |
+| `chain-internal` | Rate limit + Authentik forward auth + security headers | Admin UIs (LAN/VPN only) |
+| `chain-public` | CrowdSec + rate limit + security headers | Services with their own auth (Bitwarden) |
+| `chain-bare` | Security headers only | Internal service-to-service / Authentik outpost |
+
+Apply a chain to a service via its Traefik label:
+
+```yaml
+labels:
+  - "traefik.http.routers.myservice.middlewares=chain-secure@file"
+```
+
+Individual middleware components:
+
+**`security-headers`** — Sets HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, and strips `Server` / `X-Powered-By` headers.
+
+**`rate-limit`** — 100 requests/second average, 50 burst per IP. Configured via `sourceCriterion.ipStrategy.depth=1` to honour `X-Forwarded-For`.
+
+**`authentik-forward-auth`** — Forwards every request to Authentik's forward auth endpoint. If the session is valid, Authentik injects identity headers (`X-authentik-username`, `X-authentik-groups`, etc.) and allows the request through. If not, it redirects to the login page.
+
+#### `tls.yml` — TLS options
+
+| Profile | Min version | Use for |
+|---------|-------------|---------|
+| `default` | TLS 1.2 | All services (applied automatically) |
+| `modern` | TLS 1.3 | High-security services (Bitwarden) |
+
+TLS 1.0 and 1.1 are disabled. Only ECDHE cipher suites are allowed.
+
+### Routing a new service
+
+Add labels to the service's `compose.yml`:
+
+```yaml
+labels:
+  - "traefik.enable=true"
+  - "traefik.http.routers.myapp.rule=Host(`myapp.${DOMAIN}`)"
+  - "traefik.http.routers.myapp.entrypoints=websecure"
+  - "traefik.http.routers.myapp.tls.certresolver=letsencrypt"
+  - "traefik.http.routers.myapp.middlewares=chain-secure@file"
+  - "traefik.http.services.myapp.loadbalancer.server.port=8080"
+```
+
+The service must also be on `traefik-net`:
+
+```yaml
+networks:
+  - traefik-net
+```
+
+### Let's Encrypt certificates
+
+Certificates are stored in `services/infrastructure/traefik/acme.json` (chmod 600, gitignored). Traefik renews them automatically before expiry.
+
+HTTP-01 challenge is configured by default — port 80 must be reachable. For wildcard certificates, switch to DNS-01 challenge (uncomment the `dnsChallenge` block in `traefik.yml` and set the DNS provider API credentials).
+
+---
+
+## CrowdSec
+
+CrowdSec is a collaborative intrusion detection system. It analyses Traefik's access logs, detects attack patterns (brute force, CVE exploitation, scanning, etc.), and shares threat intelligence with the CrowdSec network.
+
+### How it works
+
+1. Traefik writes access logs to `data/traefik/logs/access.log` (JSON format)
+2. CrowdSec tails the log file (configured in `crowdsec/acquis.yaml`)
+3. CrowdSec matches log lines against installed parsers and scenarios
+4. Detected attackers are added to the local decisions database
+5. The Traefik bouncer queries the decisions database on every request and blocks banned IPs
+
+### Log sources
+
+`services/infrastructure/crowdsec/acquis.yaml` defines which files CrowdSec monitors:
+
+| Source | Type | Detects |
+|--------|------|---------|
+| `/var/log/traefik/access.log` | `traefik` | HTTP attacks, CVE exploits, scanning |
+| `/var/log/auth.log` | `syslog` | SSH brute force, sudo abuse |
+| `/var/log/syslog` | `syslog` | General system events |
+
+### Installed collections
+
+Set via the `COLLECTIONS` environment variable in `compose.yml`:
+
+- `crowdsecurity/traefik` — Traefik-specific parsers and scenarios
+- `crowdsecurity/http-cve` — Known CVE exploit detection
+- `crowdsecurity/whitelist-good-actors` — Whitelists legitimate crawlers (Googlebot, etc.)
+
+### Managing decisions
+
+```bash
+# View current bans
+docker exec crowdsec cscli decisions list
+
+# Manually ban an IP
+docker exec crowdsec cscli decisions add --ip 1.2.3.4 --duration 24h --reason "manual ban"
+
+# Remove a ban
+docker exec crowdsec cscli decisions delete --ip 1.2.3.4
+
+# View CrowdSec alerts
+docker exec crowdsec cscli alerts list
+
+# Check metrics
+docker exec crowdsec cscli metrics
+```
+
+### Bouncer
+
+`bouncer-traefik` runs as a Traefik forward-auth middleware. It queries the CrowdSec LAPI on every request and returns HTTP 403 for banned IPs. The bouncer API key is generated by `setup.sh` and passed via `CROWDSEC_BOUNCER_KEY`.
+
+---
+
+## Socket Proxy
+
+The Docker Socket Proxy (tecnativa/docker-socket-proxy) sits between the Docker daemon's Unix socket and any service that needs Docker API access (Traefik, Portainer, Watchtower).
+
+### Why it matters
+
+Mounting `/var/run/docker.sock` directly into a container gives it full root-equivalent access to the host. If that container is compromised, the attacker controls the host. Socket Proxy restricts which API endpoints are accessible.
+
+### Permitted endpoints
+
+| Endpoint | Allowed | Reason |
+|----------|---------|--------|
+| `CONTAINERS` | Yes | Traefik needs to read container labels |
+| `SERVICES`, `TASKS`, `NETWORKS` | Yes | Portainer needs these for display |
+| `POST` | Yes | Portainer/Watchtower need to start/stop/update containers |
+| `AUTH` | No | Blocks registry authentication credentials |
+| `SECRETS` | No | Blocks Docker Swarm secrets |
+| `BUILD`, `COMMIT`, `EXEC` | No | No image building or command execution |
+
+Services connect to Socket Proxy over `socket-proxy-net` using `tcp://socket-proxy:2375`. No service mounts the raw Docker socket directly.

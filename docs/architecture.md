@@ -1,0 +1,133 @@
+# Architecture
+
+## Overview
+
+Superbox is a collection of Docker Compose modules orchestrated by a master `docker-compose.yml`. All external traffic enters through Traefik, is screened by CrowdSec, and is authenticated by Authentik before reaching any application.
+
+## Network Topology
+
+```
+Internet / LAN
+       │
+  ┌────▼─────────────────────────────────────────┐
+  │  Traefik v3  (ports 80, 443)                 │
+  │  - HTTP → HTTPS redirect                     │
+  │  - Let's Encrypt TLS termination             │
+  │  - Routes by Host header                     │
+  └────┬──────────────────┬───────────────────────┘
+       │                  │
+  CrowdSec bouncer    Socket Proxy
+  (IP ban enforcement) (restricted Docker API)
+       │
+  ┌────▼───────────────────────────────────────────┐
+  │  Authentik (forward auth / OIDC)               │
+  │  - Validates session on every request          │
+  │  - Issues tokens to OIDC-native services       │
+  └────┬───────────────────────────────────────────┘
+       │
+  ┌────┴─────────────────────────────────────────┐
+  │  Applications                                │
+  │  ├── OpenCloud + Collabora + Tika            │
+  │  ├── Grafana + Prometheus + cAdvisor         │
+  │  ├── Portainer + Homepage                    │
+  │  ├── FileBrowser (NAS)                       │
+  │  ├── Bitwarden Lite                          │
+  │  └── Duplicati                               │
+  └──────────────────────────────────────────────┘
+```
+
+## Docker Networks
+
+Each network is scoped to the minimum set of services that need to communicate.
+
+| Network | Members | Purpose |
+|---------|---------|---------|
+| `traefik-net` | Traefik + all web-facing services | HTTP routing from proxy to app |
+| `crowdsec-net` | Traefik + CrowdSec + bouncer | Threat feed between engine and enforcer |
+| `socket-proxy-net` | Socket Proxy + Traefik + Portainer + Watchtower | Restricted Docker API access |
+| `auth-net` | Authentik server + worker + PostgreSQL + Redis | Isolated IdP backend |
+| `opencloud-net` | OpenCloud + Collabora + Tika | WOPI and search (no external exposure) |
+| `monitoring-net` | Prometheus + Grafana + all exporters | Metrics scraping |
+| `backup-net` | Duplicati | Isolated backup operations |
+
+**Isolation rule:** Database and cache containers (`authentik-db`, `authentik-redis`) are connected to `auth-net` only — they are never reachable from `traefik-net`.
+
+## Request Flow
+
+### Authenticated request (typical)
+
+```
+Browser → Traefik (TLS termination)
+        → CrowdSec bouncer (IP check — block if banned)
+        → Authentik forward auth (session check — redirect to login if not authenticated)
+        → Application container
+        → Response back through Traefik to browser
+```
+
+### OIDC login flow (e.g. Grafana)
+
+```
+Browser → Grafana login page
+        → Redirect to Authentik authorization endpoint
+        → User logs in (password + optional TOTP)
+        → Authentik issues authorization code
+        → Grafana exchanges code for tokens at Authentik token endpoint
+        → Grafana validates ID token, creates session
+        → User lands on Grafana dashboard
+```
+
+## Module System
+
+The master `docker-compose.yml` uses Docker Compose v2's `include` directive. Each module is a self-contained `compose.yml` with its own services and any module-specific networks.
+
+```yaml
+include:
+  - ./services/infrastructure/compose.yml   # always-on
+  - ./services/management/compose.yml        # always-on
+  - ./services/auth/compose.yml              # recommended
+  - ./services/opencloud/compose.yml         # optional
+  - ./services/monitoring/compose.yml        # optional
+  - ./services/nas/compose.yml               # optional
+  - ./services/backup/compose.yml            # optional
+  - ./services/passwords/compose.yml         # optional
+```
+
+Commenting out a line removes all containers, networks, and volumes declared in that module. The remaining modules are unaffected.
+
+## Storage Layout
+
+All persistent data lives under `data/` (gitignored). The directory tree is created by `setup.sh` before first start.
+
+```
+data/
+├── traefik/logs/          # Traefik access log (read by CrowdSec)
+├── crowdsec/              # CrowdSec state and decisions database
+├── portainer/             # Portainer database
+├── authentik/             # Authentik media, templates, certs
+├── authentik-db/          # PostgreSQL data files
+├── authentik-redis/       # Redis RDB snapshots
+├── opencloud/             # OpenCloud spaces and metadata
+├── collabora/             # Collabora extensions
+├── monitoring/
+│   ├── prometheus/        # Prometheus TSDB blocks (30d retention)
+│   ├── grafana/           # Grafana database and plugins
+│   └── alertmanager/      # Alertmanager state
+├── nas/shares/            # Samba and FileBrowser root
+│   ├── public/
+│   ├── private/
+│   └── backups/
+├── backup/                # Duplicati job database and config
+├── passwords/             # Bitwarden Lite data
+└── filebrowser/           # FileBrowser database and settings
+```
+
+## Optional: ZFS Storage
+
+If ZFS is enabled via Ansible (`enable_zfs: true`), the `data/` subdirectories are replaced by ZFS datasets mounted at the same paths. This provides:
+
+- Block-level checksums (silent corruption detection)
+- Transparent `lz4` compression
+- Point-in-time snapshots via `zfs-auto-snapshot`
+- RAID-Z parity (if multiple disks are configured)
+
+See [Provisioning](provisioning.md) for setup details.
