@@ -22,7 +22,7 @@ services:
     networks:
       - traefik-net
     volumes:
-      - ./data/passwords:/etc/bitwarden
+      - ../../data/passwords:/etc/bitwarden
     environment:
       - TZ=${TZ:-Europe/Berlin}
       # Required: obtain from https://bitwarden.com/host/

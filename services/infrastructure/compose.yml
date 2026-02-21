@@ -21,7 +21,7 @@ services:
   # All services that need Docker API access must use this, not the raw socket.
   # ---------------------------------------------------------------------------
   socket-proxy:
-    image: tecnativa/docker-socket-proxy:0.2
+    image: tecnativa/docker-socket-proxy:latest
     container_name: socket-proxy
     restart: unless-stopped
     security_opt:
@@ -76,9 +76,9 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./services/infrastructure/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./services/infrastructure/traefik/dynamic:/etc/traefik/dynamic:ro
-      - ./services/infrastructure/traefik/acme.json:/acme.json
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      - ./traefik/acme.json:/acme.json
     environment:
       - TZ=${TZ:-Europe/Berlin}
     labels:
@@ -98,7 +98,7 @@ services:
   # CrowdSec — Threat intelligence engine and log analysis
   # ---------------------------------------------------------------------------
   crowdsec:
-    image: crowdsecurity/crowdsec:v1.6
+    image: crowdsecurity/crowdsec:v1.6.8
     container_name: crowdsec
     restart: unless-stopped
     security_opt:
@@ -106,11 +106,11 @@ services:
     networks:
       - crowdsec-net
     volumes:
-      - ./services/infrastructure/crowdsec/acquis.yaml:/etc/crowdsec/acquis.yaml:ro
-      - ./data/crowdsec/config:/etc/crowdsec
-      - ./data/crowdsec/data:/var/lib/crowdsec/data
+      - ./crowdsec/acquis.yaml:/etc/crowdsec/acquis.yaml:ro
+      - ../../data/crowdsec/config:/etc/crowdsec
+      - ../../data/crowdsec/data:/var/lib/crowdsec/data
       # Read Traefik access logs for analysis
-      - ./data/traefik/logs:/var/log/traefik:ro
+      - ../../data/traefik/logs:/var/log/traefik:ro
     environment:
       - TZ=${TZ:-Europe/Berlin}
       - COLLECTIONS=crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors
@@ -123,7 +123,7 @@ services:
   # CrowdSec Bouncer for Traefik — enforces CrowdSec ban decisions at ingress
   # ---------------------------------------------------------------------------
   bouncer-traefik:
-    image: crowdsecurity/traefik-bouncer:v1.3
+    image: fbonalair/traefik-crowdsec-bouncer:0.5.0
     container_name: bouncer-traefik
     restart: unless-stopped
     security_opt:
@@ -133,7 +133,8 @@ services:
       - traefik-net
     environment:
       - TZ=${TZ:-Europe/Berlin}
-      - CROWDSEC_BOUNCER_APIKEY=${CROWDSEC_BOUNCER_KEY}
+      - GIN_MODE=release
+      - CROWDSEC_BOUNCER_API_KEY=${CROWDSEC_BOUNCER_KEY}
       - CROWDSEC_AGENT_HOST=crowdsec:8080
       - CROWDSEC_BOUNCER_LOG_LEVEL=info
     labels:

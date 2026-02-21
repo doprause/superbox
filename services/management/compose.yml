@@ -15,7 +15,7 @@ services:
   # Portainer CE — Docker container management UI
   # ---------------------------------------------------------------------------
   portainer:
-    image: portainer/portainer-ce:2.21
+    image: portainer/portainer-ce:2.21.5
     container_name: portainer
     restart: unless-stopped
     security_opt:
@@ -24,7 +24,7 @@ services:
       - traefik-net
       - socket-proxy-net
     volumes:
-      - ./data/portainer:/data
+      - ../../data/portainer:/data
     environment:
       - TZ=${TZ:-Europe/Berlin}
     labels:
@@ -41,7 +41,7 @@ services:
   # Homepage — Beautiful service dashboard with system widgets
   # ---------------------------------------------------------------------------
   homepage:
-    image: ghcr.io/gethomepage/homepage:v0.10
+    image: ghcr.io/gethomepage/homepage:v1.10
     container_name: homepage
     restart: unless-stopped
     security_opt:
@@ -50,8 +50,8 @@ services:
       - traefik-net
       - socket-proxy-net
     volumes:
-      - ./services/management/homepage/config:/app/config:ro
-      - ./data/homepage:/app/data
+      - ./homepage/config:/app/config
+      - ../../data/homepage:/app/data
     environment:
       - TZ=${TZ:-Europe/Berlin}
       - PUID=${PUID:-1000}
@@ -70,7 +70,7 @@ services:
   # Watchtower — Automatic container image updates (nightly, opt-in via label)
   # ---------------------------------------------------------------------------
   watchtower:
-    image: containrrr/watchtower:1.7
+    image: containrrr/watchtower:1.7.1
     container_name: watchtower
     restart: unless-stopped
     security_opt:
@@ -80,6 +80,7 @@ services:
     environment:
       - TZ=${TZ:-Europe/Berlin}
       - DOCKER_HOST=tcp://socket-proxy:2375
+      - DOCKER_API_VERSION=1.44
       # Only update containers with the label: com.centurylinklabs.watchtower.enable=true
       - WATCHTOWER_LABEL_ENABLE=true
       - WATCHTOWER_CLEANUP=true

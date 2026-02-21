@@ -20,8 +20,8 @@ services:
     # Samba must run on host network for proper NetBIOS/SMB broadcast discovery
     network_mode: host
     volumes:
-      - ./services/nas/samba/smb.conf:/etc/samba/smb.conf:ro
-      - ./data/nas/shares:/shares
+      - ./samba/smb.conf:/etc/samba/smb.conf:ro
+      - ../../data/nas/shares:/shares
     environment:
       - TZ=${TZ:-Europe/Berlin}
       - USERID=${PUID:-1000}
@@ -42,9 +42,9 @@ services:
     networks:
       - traefik-net
     volumes:
-      - ./data/nas/shares:/srv
-      - ./data/filebrowser/database.db:/database.db
-      - ./data/filebrowser/settings.json:/.filebrowser.json
+      - ../../data/nas/shares:/srv
+      - ../../data/filebrowser/database.db:/database.db
+      - ../../data/filebrowser/settings.json:/.filebrowser.json
     environment:
       - TZ=${TZ:-Europe/Berlin}
     labels:

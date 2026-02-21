@@ -18,6 +18,79 @@ docker compose version
 # Docker Compose version v2.24.5
 ```
 
+## Adding Your SSH Key to the Server
+
+Before running the Ansible playbook or connecting remotely, add your client's public SSH key to the server so you can authenticate without a password.
+
+**On your local machine**, generate a key pair if you don't have one:
+
+```bash
+ssh-keygen -t ed25519 -C "your@email.com"
+# Key saved to ~/.ssh/id_ed25519 (private) and ~/.ssh/id_ed25519.pub (public)
+```
+
+**Copy the public key to the server** using `ssh-copy-id`:
+
+```bash
+ssh-copy-id -i ~/.ssh/id_ed25519.pub ubuntu@<server-ip>
+# Enter the password once — subsequent logins will use the key
+```
+
+If `ssh-copy-id` is not available, copy the key manually:
+
+```bash
+cat ~/.ssh/id_ed25519.pub | ssh ubuntu@<server-ip> \
+  "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+```
+
+**Verify key-based login works** before disabling password auth:
+
+```bash
+ssh -i ~/.ssh/id_ed25519 ubuntu@<server-ip>
+```
+
+**Optionally disable password authentication** on the server for hardened access (`/etc/ssh/sshd_config`):
+
+```
+PasswordAuthentication no
+PubkeyAuthentication yes
+```
+
+Then restart SSH: `sudo systemctl restart ssh`
+
+## Adding Your User to the Docker Group
+
+If your server user is not in the `docker` group, the setup script will fail with "Docker daemon is not running" even when the daemon is active — because the user lacks permission to reach the Docker socket.
+
+Add the user to the `docker` group:
+
+```bash
+sudo usermod -aG docker $USER
+```
+
+Then apply the change to your current session without logging out:
+
+```bash
+newgrp docker
+```
+
+Verify access:
+
+```bash
+docker info >/dev/null && echo "Docker access OK"
+```
+
+> **Note:** A full logout and login is required for the group change to persist across all new sessions.
+
+---
+
+Once the key is in place, update `ansible/inventory` to reference it:
+
+```ini
+[superbox]
+<server-ip> ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_ed25519
+```
+
 ## Installation
 
 ### Option A — Automated (Ansible)
