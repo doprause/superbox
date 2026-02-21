@@ -74,8 +74,13 @@ http:
 
     # -------------------------------------------------------------------------
     # CrowdSec Bouncer — checks IP reputation, blocks banned IPs
-    # (Referenced via the bouncer-traefik container label)
+    # Defined here (file provider) so it's always available at startup,
+    # regardless of bouncer container discovery order.
     # -------------------------------------------------------------------------
+    crowdsec-bouncer:
+      forwardAuth:
+        address: "http://bouncer-traefik:8080/api/v1/forwardAuth"
+        trustForwardHeader: true
 
     # -------------------------------------------------------------------------
     # HTTPS Redirect (entrypoint-level — defined in traefik.yml)
@@ -88,7 +93,7 @@ http:
     chain-secure:
       chain:
         middlewares:
-          - crowdsec-bouncer@docker
+          - crowdsec-bouncer@file
           - rate-limit
           - authentik-forward-auth
           - security-headers
@@ -111,7 +116,7 @@ http:
     chain-public:
       chain:
         middlewares:
-          - crowdsec-bouncer@docker
+          - crowdsec-bouncer@file
           - rate-limit
           - security-headers
 
