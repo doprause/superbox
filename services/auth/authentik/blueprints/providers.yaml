@@ -23,7 +23,7 @@ entries:
       client_type: confidential
       client_id: grafana
       redirect_uris:
-        - !Format ["https://grafana.%s/login/generic_oauth", [!Env "DOMAIN"]]
+        - !Format ["https://grafana.%s/login/generic_oauth", !Env "DOMAIN"]
       access_token_validity: hours=1
       refresh_token_validity: days=30
       property_mappings:
@@ -42,7 +42,7 @@ entries:
       name: Portainer Forward Auth
       authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
       mode: forward_single
-      external_host: !Format ["https://portainer.%s", [!Env "DOMAIN"]]
+      external_host: !Format ["https://portainer.%s", !Env "DOMAIN"]
       access_token_validity: hours=12
 
   # ---------------------------------------------------------------------------
@@ -56,5 +56,5 @@ entries:
       name: FileBrowser Forward Auth
       authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
       mode: forward_single
-      external_host: !Format ["https://files.%s", [!Env "DOMAIN"]]
+      external_host: !Format ["https://files.%s", !Env "DOMAIN"]
       access_token_validity: hours=12
