@@ -50,7 +50,7 @@ services:
       - traefik-net
       - socket-proxy-net
     volumes:
-      - ./homepage/config:/app/config:ro
+      - ./homepage/config:/app/config
       - ../../data/homepage:/app/data
     environment:
       - TZ=${TZ:-Europe/Berlin}
