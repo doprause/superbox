@@ -58,6 +58,32 @@ PubkeyAuthentication yes
 
 Then restart SSH: `sudo systemctl restart ssh`
 
+## Adding Your User to the Docker Group
+
+If your server user is not in the `docker` group, the setup script will fail with "Docker daemon is not running" even when the daemon is active — because the user lacks permission to reach the Docker socket.
+
+Add the user to the `docker` group:
+
+```bash
+sudo usermod -aG docker $USER
+```
+
+Then apply the change to your current session without logging out:
+
+```bash
+newgrp docker
+```
+
+Verify access:
+
+```bash
+docker info >/dev/null && echo "Docker access OK"
+```
+
+> **Note:** A full logout and login is required for the group change to persist across all new sessions.
+
+---
+
 Once the key is in place, update `ansible/inventory` to reference it:
 
 ```ini
