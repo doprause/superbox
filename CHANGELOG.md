@@ -1,0 +1,39 @@
+# Changelog
+
+All notable changes to Superbox are documented here.
+
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [Unreleased]
+
+### Added
+- Initial full stack implementation — all 8 modules (infrastructure, management, auth, opencloud, monitoring, NAS, backup, passwords)
+- Ansible playbook with roles: `base`, `docker`, `firewall`, `storage`, `superbox`
+- `scripts/setup.sh` — first-run secret generation, data directory creation, pre-flight checks with interactive install prompts
+- `Makefile` — management shortcuts for all common operations
+- `.env.example` — full variable template
+- Traefik v3 static config, middleware chains (`chain-secure`, `chain-internal`, `chain-public`, `chain-bare`), TLS 1.2+/1.3 profiles
+- CrowdSec v1.6.8 with Traefik log acquisition and bouncer enforcement
+- Authentik 2025.2 with declarative IaC blueprints (groups, providers, applications, MFA flows)
+- Homepage v1.10 dashboard with system widgets and service links
+- Prometheus + Grafana + node-exporter + cAdvisor + Alertmanager monitoring stack
+- Samba SMB2+/3 shares and FileBrowser v2.32 web UI
+- Duplicati 2.0.9 encrypted backup with offsite target support
+- Bitwarden Lite `self-host:2025.12` password manager
+- `docs/` — full component documentation (13 documents)
+
+### Fixed
+- Correct image tags verified against Docker Hub:
+  - `ghcr.io/gethomepage/homepage:v0.10` → `v1.10`
+  - `crowdsecurity/crowdsec:v1.6` → `v1.6.8`
+  - `crowdsecurity/traefik-bouncer:v1.3` → `fbonalair/traefik-crowdsec-bouncer:0.5.0` (image moved)
+  - `tecnativa/docker-socket-proxy:0.2` → `latest` (v0.4.2 — no version tags published)
+  - `portainer/portainer-ce:2.21` → `2.21.5`
+  - `containrrr/watchtower:1.7` → `1.7.1`
+- Volume bind-mount paths in all included compose files corrected to be relative to each file's own directory (Docker Compose `include` resolution behaviour)
+- Homepage config directory changed from `:ro` to writable — required for first-boot skeleton file creation
+- `DOCKER_API_VERSION=1.44` added to Watchtower — required for compatibility with Docker 29.x via socket proxy
+- Docker group membership documented in getting-started guide
+- `setup.sh` pre-flight check now prompts to install missing prerequisites (Docker, Docker Compose, openssl) instead of exiting with an error
