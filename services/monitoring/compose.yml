@@ -122,7 +122,7 @@ services:
   # cAdvisor — Per-container CPU, RAM, network, disk I/O metrics
   # ---------------------------------------------------------------------------
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.56.2
+    image: gcr.io/cadvisor/cadvisor:v0.52.1
     container_name: cadvisor
     restart: unless-stopped
     security_opt:

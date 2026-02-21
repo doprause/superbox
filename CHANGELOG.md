@@ -30,7 +30,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and 
   - `prom/node-exporter:v1.8` → `v1.9.1`
   - `prom/alertmanager:v0.27` → `v0.31.1`
   - `grafana/grafana:11.4` → `12.3.3`
-  - `gcr.io/cadvisor/cadvisor:v0.50` → `v0.56.2` (image requires three-part version)
+  - `gcr.io/cadvisor/cadvisor:v0.50` → `v0.52.1` (latest available on gcr.io; releases beyond v0.52.x are not published to gcr.io)
   - `opencloudeu/opencloud:rolling` → `4.0.3`
   - `collabora/code:24.04` → `25.04.9.1.1`
   - `apache/tika:2.9` → `3.2.3.0`
