@@ -77,8 +77,11 @@ certificatesResolvers:
 # ---------------------------------------------------------------------------
 providers:
   # Docker provider — reads labels from containers
+  # Uses the Docker socket directly (read-only mount). The socket proxy is used
+  # by Portainer and Watchtower for container lifecycle operations; Traefik only
+  # reads labels and does not need the proxy's write-protection.
   docker:
-    endpoint: "tcp://socket-proxy:2375"
+    endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
     network: traefik-net
     watch: true

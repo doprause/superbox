@@ -71,7 +71,6 @@ services:
     networks:
       - traefik-net
       - crowdsec-net
-      - socket-proxy-net
     ports:
       - "80:80"
       - "443:443"
@@ -79,9 +78,11 @@ services:
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
       - ./traefik/acme.json:/acme.json
+      # Read-only Docker socket — Traefik only reads container labels.
+      # Direct socket access avoids API version negotiation issues with Docker 29.x.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       - TZ=${TZ:-Europe/Berlin}
-      - DOCKER_API_VERSION=1.44
     labels:
       - "traefik.enable=true"
       # Dashboard — internal access only (protect with forward auth in production)
@@ -92,7 +93,6 @@ services:
       - "traefik.http.routers.traefik-dashboard.middlewares=chain-internal@file"
       - "com.superbox.module=infrastructure"
     depends_on:
-      - socket-proxy
       - crowdsec
 
   # ---------------------------------------------------------------------------
