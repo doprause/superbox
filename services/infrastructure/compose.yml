@@ -63,7 +63,7 @@ services:
   # Traefik v3 — Reverse proxy, TLS termination, Let's Encrypt ACME
   # ---------------------------------------------------------------------------
   traefik:
-    image: traefik:v3.3
+    image: traefik:v3.6
     container_name: traefik
     restart: unless-stopped
     security_opt:
