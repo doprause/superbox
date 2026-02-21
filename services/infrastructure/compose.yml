@@ -82,6 +82,7 @@ services:
       # Direct socket access avoids API version negotiation issues with Docker 29.x.
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ../../data/traefik/logs:/var/log/traefik
+      - ../../data/traefik/certs:/certs:ro
     environment:
       - TZ=${TZ:-Europe/Berlin}
     labels:

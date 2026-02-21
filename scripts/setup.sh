@@ -270,7 +270,8 @@ env_set_if_empty "BACKUP_PASSPHRASE"         "$(gen_secret)"
 section "=== Creating data directories ==="
 
 DATA_DIRS=(
-  "data/traefik"
+  "data/traefik/logs"
+  "data/traefik/certs"
   "data/crowdsec/config"
   "data/crowdsec/data"
   "data/portainer"
@@ -312,6 +313,23 @@ if [ ! -f "$ACME_FILE" ]; then
 fi
 chmod 600 "$ACME_FILE"
 log "Set acme.json permissions to 600 — OK"
+
+# Generate a self-signed fallback certificate (used when ACME is unavailable,
+# e.g. local domains, or as a fallback before the first ACME cert is issued).
+CERT_FILE="$ROOT_DIR/data/traefik/certs/cert.pem"
+KEY_FILE="$ROOT_DIR/data/traefik/certs/key.pem"
+DOMAIN=$(env_get "DOMAIN")
+if [ ! -f "$CERT_FILE" ] || [ ! -f "$KEY_FILE" ]; then
+  log "Generating self-signed fallback TLS certificate for ${DOMAIN:-localhost}..."
+  openssl req -x509 -newkey rsa:4096 -keyout "$KEY_FILE" -out "$CERT_FILE" \
+    -days 3650 -nodes \
+    -subj "/CN=*.${DOMAIN:-localhost}" \
+    -addext "subjectAltName=DNS:*.${DOMAIN:-localhost},DNS:${DOMAIN:-localhost}" \
+    2>/dev/null
+  log "Self-signed cert generated — OK"
+else
+  log "TLS fallback certificate already exists — skipping"
+fi
 
 # ---------------------------------------------------------------------------
 # 6. Post-install checklist

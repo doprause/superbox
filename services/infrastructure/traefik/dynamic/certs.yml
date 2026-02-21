@@ -1,0 +1,12 @@
+# =============================================================================
+# Traefik Dynamic Config — Default TLS Certificate
+# Used as fallback when ACME cert is unavailable (e.g. local/private domains).
+# For public domains, ACME certs from Let's Encrypt take priority.
+# =============================================================================
+
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /certs/cert.pem
+        keyFile: /certs/key.pem
