@@ -81,6 +81,7 @@ services:
       - ./traefik/acme.json:/acme.json
     environment:
       - TZ=${TZ:-Europe/Berlin}
+      - DOCKER_API_VERSION=1.44
     labels:
       - "traefik.enable=true"
       # Dashboard — internal access only (protect with forward auth in production)
