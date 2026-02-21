@@ -140,6 +140,7 @@ services:
       - ./authentik/blueprints:/blueprints/superbox:ro
     environment:
       - TZ=${TZ:-Europe/Berlin}
+      - DOMAIN=${DOMAIN}
       - AUTHENTIK_REDIS__HOST=authentik-redis
       - AUTHENTIK_REDIS__PASSWORD=${AUTHENTIK_SECRET_KEY}
       - AUTHENTIK_POSTGRESQL__HOST=authentik-db
