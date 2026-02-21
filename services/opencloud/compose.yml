@@ -15,7 +15,7 @@ services:
   # OpenCloud EU — File sync/share, calendar, contacts, spaces
   # ---------------------------------------------------------------------------
   opencloud:
-    image: opencloudeu/opencloud:rolling
+    image: opencloudeu/opencloud:4.0.3
     container_name: opencloud
     restart: unless-stopped
     security_opt:
@@ -55,7 +55,7 @@ services:
   # Integrates with OpenCloud via WOPI protocol
   # ---------------------------------------------------------------------------
   collabora:
-    image: collabora/code:24.04
+    image: collabora/code:25.04.9.1.1
     container_name: collabora
     restart: unless-stopped
     security_opt:
@@ -88,7 +88,7 @@ services:
   # Apache Tika — Full-text extraction for OpenCloud search indexing
   # ---------------------------------------------------------------------------
   tika:
-    image: apache/tika:2.9
+    image: apache/tika:3.2.3.0
     container_name: tika
     restart: unless-stopped
     security_opt:

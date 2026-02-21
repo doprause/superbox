@@ -16,7 +16,7 @@ services:
   # Supports: S3, Backblaze B2, SFTP, FTP, Google Drive, OneDrive, local disk
   # ---------------------------------------------------------------------------
   duplicati:
-    image: duplicati/duplicati:2.0.9
+    image: duplicati/duplicati:2.2.0.3-stable
     container_name: duplicati
     restart: unless-stopped
     security_opt:

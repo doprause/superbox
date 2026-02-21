@@ -25,7 +25,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and 
 - `docs/` — full component documentation (13 documents)
 
 ### Fixed
-- Correct image tags verified against Docker Hub:
+- Correct image tags verified against registries — all tags pinned to three-part versions:
+  - `prom/prometheus:v3.1` → `v3.9.1`
+  - `prom/node-exporter:v1.8` → `v1.9.1`
+  - `prom/alertmanager:v0.27` → `v0.31.1`
+  - `grafana/grafana:11.4` → `12.3.3`
+  - `gcr.io/cadvisor/cadvisor:v0.50` → `v0.56.2` (image requires three-part version)
+  - `opencloudeu/opencloud:rolling` → `4.0.3`
+  - `collabora/code:24.04` → `25.04.9.1.1`
+  - `apache/tika:2.9` → `3.2.3.0`
+  - `filebrowser/filebrowser:v2.32` → `v2.59.0`
+  - `duplicati/duplicati:2.0.9` → `2.2.0.3-stable`
+  - `ghcr.io/bitwarden/self-host:2025.12` → `latest` (GA release not yet published; no stable versioned tag available)
+- Correct image tags verified against Docker Hub (earlier fixes):
   - `ghcr.io/gethomepage/homepage:v0.10` → `v1.10`
   - `crowdsecurity/crowdsec:v1.6` → `v1.6.8`
   - `crowdsecurity/traefik-bouncer:v1.3` → `fbonalair/traefik-crowdsec-bouncer:0.5.0` (image moved)

@@ -14,7 +14,7 @@ services:
   # Requires installation ID and key from https://bitwarden.com/host/
   # ---------------------------------------------------------------------------
   bitwarden:
-    image: ghcr.io/bitwarden/self-host:2025.12
+    image: ghcr.io/bitwarden/self-host:latest
     container_name: bitwarden
     restart: unless-stopped
     security_opt:

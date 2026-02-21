@@ -33,7 +33,7 @@ services:
   # FileBrowser — Web-based file manager for NAS shares
   # ---------------------------------------------------------------------------
   filebrowser:
-    image: filebrowser/filebrowser:v2.32
+    image: filebrowser/filebrowser:v2.59.0
     container_name: filebrowser
     restart: unless-stopped
     security_opt:
