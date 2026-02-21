@@ -21,7 +21,7 @@ entries:
       name: Grafana
       slug: grafana
       provider: !Find [authentik_providers_oauth2.oauth2provider, [name, Grafana Provider]]
-      meta_launch_url: "https://grafana.$(DOMAIN)"
+      meta_launch_url: !Format ["https://grafana.%s", [!Env "DOMAIN"]]
       meta_description: Infrastructure dashboards and alerting
       meta_icon: https://raw.githubusercontent.com/grafana/grafana/main/public/img/grafana_icon.svg
       group: Monitoring
@@ -39,7 +39,7 @@ entries:
       name: Portainer
       slug: portainer
       provider: !Find [authentik_providers_proxy.proxyprovider, [name, Portainer Forward Auth]]
-      meta_launch_url: "https://portainer.$(DOMAIN)"
+      meta_launch_url: !Format ["https://portainer.%s", [!Env "DOMAIN"]]
       meta_description: Docker container management
       group: Management
       policy_engine_mode: any
@@ -56,7 +56,7 @@ entries:
       name: FileBrowser
       slug: filebrowser
       provider: !Find [authentik_providers_proxy.proxyprovider, [name, FileBrowser Forward Auth]]
-      meta_launch_url: "https://files.$(DOMAIN)"
+      meta_launch_url: !Format ["https://files.%s", [!Env "DOMAIN"]]
       meta_description: Web-based NAS file manager
       group: Files
       policy_engine_mode: any
