@@ -40,9 +40,6 @@ entryPoints:
 
   websecure:
     address: ":443"
-    http:
-      tls:
-        certResolver: letsencrypt
     http3:
       advertisedPort: 443
     forwardedHeaders:
