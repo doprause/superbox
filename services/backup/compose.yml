@@ -27,14 +27,14 @@ services:
       - backup-net
     volumes:
       # Duplicati config and job database
-      - ./data/backup/config:/data/Duplicati
+      - ../../data/backup/config:/data/Duplicati
       # Restore staging area
-      - ./data/backup/restore:/restore
+      - ../../data/backup/restore:/restore
       # Source data to back up (read-only)
-      - ./data/opencloud:/source/opencloud:ro
-      - ./data/authentik:/source/authentik:ro
-      - ./data/nas/shares:/source/nas:ro
-      - ./data/passwords:/source/passwords:ro
+      - ../../data/opencloud:/source/opencloud:ro
+      - ../../data/authentik:/source/authentik:ro
+      - ../../data/nas/shares:/source/nas:ro
+      - ../../data/passwords:/source/passwords:ro
     environment:
       - TZ=${TZ:-Europe/Berlin}
       - PUID=${PUID:-1000}

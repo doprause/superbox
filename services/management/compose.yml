@@ -24,7 +24,7 @@ services:
       - traefik-net
       - socket-proxy-net
     volumes:
-      - ./data/portainer:/data
+      - ../../data/portainer:/data
     environment:
       - TZ=${TZ:-Europe/Berlin}
     labels:
@@ -50,8 +50,8 @@ services:
       - traefik-net
       - socket-proxy-net
     volumes:
-      - ./services/management/homepage/config:/app/config:ro
-      - ./data/homepage:/app/data
+      - ./homepage/config:/app/config:ro
+      - ../../data/homepage:/app/data
     environment:
       - TZ=${TZ:-Europe/Berlin}
       - PUID=${PUID:-1000}

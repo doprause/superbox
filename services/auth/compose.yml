@@ -26,7 +26,7 @@ services:
     networks:
       - auth-net
     volumes:
-      - ./data/authentik-db:/var/lib/postgresql/data
+      - ../../data/authentik-db:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-authentik}
       - POSTGRES_USER=${POSTGRES_USER:-authentik}
@@ -54,7 +54,7 @@ services:
     networks:
       - auth-net
     volumes:
-      - ./data/authentik-redis:/data
+      - ../../data/authentik-redis:/data
     command: redis-server --save 60 1 --loglevel warning --requirepass "${AUTHENTIK_SECRET_KEY}"
     healthcheck:
       test: ["CMD-SHELL", "redis-cli --no-auth-warning -a ${AUTHENTIK_SECRET_KEY} ping | grep PONG"]
@@ -79,11 +79,11 @@ services:
       - traefik-net
       - auth-net
     volumes:
-      - ./data/authentik/media:/media
-      - ./data/authentik/templates:/templates
-      - ./data/authentik/certs:/certs
+      - ../../data/authentik/media:/media
+      - ../../data/authentik/templates:/templates
+      - ../../data/authentik/certs:/certs
       # Blueprints for IaC (declarative SSO configuration)
-      - ./services/auth/authentik/blueprints:/blueprints/superbox:ro
+      - ./authentik/blueprints:/blueprints/superbox:ro
     environment:
       - TZ=${TZ:-Europe/Berlin}
       - AUTHENTIK_REDIS__HOST=authentik-redis
@@ -135,9 +135,9 @@ services:
     networks:
       - auth-net
     volumes:
-      - ./data/authentik/media:/media
-      - ./data/authentik/certs:/certs
-      - ./services/auth/authentik/blueprints:/blueprints/superbox:ro
+      - ../../data/authentik/media:/media
+      - ../../data/authentik/certs:/certs
+      - ./authentik/blueprints:/blueprints/superbox:ro
     environment:
       - TZ=${TZ:-Europe/Berlin}
       - AUTHENTIK_REDIS__HOST=authentik-redis

@@ -76,9 +76,9 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./services/infrastructure/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./services/infrastructure/traefik/dynamic:/etc/traefik/dynamic:ro
-      - ./services/infrastructure/traefik/acme.json:/acme.json
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      - ./traefik/acme.json:/acme.json
     environment:
       - TZ=${TZ:-Europe/Berlin}
     labels:
@@ -106,11 +106,11 @@ services:
     networks:
       - crowdsec-net
     volumes:
-      - ./services/infrastructure/crowdsec/acquis.yaml:/etc/crowdsec/acquis.yaml:ro
-      - ./data/crowdsec/config:/etc/crowdsec
-      - ./data/crowdsec/data:/var/lib/crowdsec/data
+      - ./crowdsec/acquis.yaml:/etc/crowdsec/acquis.yaml:ro
+      - ../../data/crowdsec/config:/etc/crowdsec
+      - ../../data/crowdsec/data:/var/lib/crowdsec/data
       # Read Traefik access logs for analysis
-      - ./data/traefik/logs:/var/log/traefik:ro
+      - ../../data/traefik/logs:/var/log/traefik:ro
     environment:
       - TZ=${TZ:-Europe/Berlin}
       - COLLECTIONS=crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors

@@ -25,8 +25,8 @@ services:
       - traefik-net
       - monitoring-net
     volumes:
-      - ./services/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./data/monitoring/prometheus:/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../data/monitoring/prometheus:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
@@ -59,8 +59,8 @@ services:
       - traefik-net
       - monitoring-net
     volumes:
-      - ./data/monitoring/grafana:/var/lib/grafana
-      - ./services/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../../data/monitoring/grafana:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
     environment:
       - TZ=${TZ:-Europe/Berlin}
       - GF_SERVER_DOMAIN=grafana.${DOMAIN}
@@ -155,8 +155,8 @@ services:
       - traefik-net
       - monitoring-net
     volumes:
-      - ./services/monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
-      - ./data/monitoring/alertmanager:/alertmanager
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ../../data/monitoring/alertmanager:/alertmanager
     command:
       - "--config.file=/etc/alertmanager/alertmanager.yml"
       - "--storage.path=/alertmanager"
