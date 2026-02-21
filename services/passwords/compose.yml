@@ -1,0 +1,61 @@
+# =============================================================================
+# Module: Passwords — Bitwarden Lite (official single-container deployment)
+# GA released December 2025. See: https://bitwarden.com/help/install-on-premise-manual/
+# =============================================================================
+
+networks:
+  traefik-net:
+    external: true
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Bitwarden Lite — Official single-container self-hosted password manager
+  # Requires installation ID and key from https://bitwarden.com/host/
+  # ---------------------------------------------------------------------------
+  bitwarden:
+    image: ghcr.io/bitwarden/self-host:2025.12
+    container_name: bitwarden
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - traefik-net
+    volumes:
+      - ./data/passwords:/etc/bitwarden
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+      # Required: obtain from https://bitwarden.com/host/
+      - BW_INSTALLATION_ID=${BITWARDEN_INSTALLATION_ID}
+      - BW_INSTALLATION_KEY=${BITWARDEN_INSTALLATION_KEY}
+      # Domain configuration
+      - BW_DOMAIN=vault.${DOMAIN}
+      - globalSettings__baseServiceUri__vault=https://vault.${DOMAIN}
+      # Database (SQLite — single container)
+      - globalSettings__databaseProvider=sqlite
+      # Disable built-in TLS (Traefik handles it)
+      - globalSettings__selfHosted=true
+      # Admin portal
+      - adminSettings__admins=${BITWARDEN_ADMIN_EMAIL:-admin@yourdomain.com}
+      # SMTP for email notifications (optional)
+      # - globalSettings__mail__smtp__host=smtp.yourdomain.com
+      # - globalSettings__mail__smtp__port=587
+      # - globalSettings__mail__smtp__username=bitwarden@yourdomain.com
+      # - globalSettings__mail__smtp__password=your-smtp-password
+    labels:
+      - "traefik.enable=true"
+      # Main vault
+      - "traefik.http.routers.bitwarden.rule=Host(`vault.${DOMAIN}`)"
+      - "traefik.http.routers.bitwarden.entrypoints=websecure"
+      - "traefik.http.routers.bitwarden.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.bitwarden.tls.options=modern@file"
+      - "traefik.http.routers.bitwarden.middlewares=chain-public@file"
+      - "traefik.http.services.bitwarden.loadbalancer.server.port=8080"
+      # Admin portal (internal access only)
+      - "traefik.http.routers.bitwarden-admin.rule=Host(`vault.${DOMAIN}`) && PathPrefix(`/admin`)"
+      - "traefik.http.routers.bitwarden-admin.entrypoints=websecure"
+      - "traefik.http.routers.bitwarden-admin.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.bitwarden-admin.middlewares=chain-internal@file"
+      - "traefik.http.routers.bitwarden-admin.priority=20"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.superbox.module=passwords"

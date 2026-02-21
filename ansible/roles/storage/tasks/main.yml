@@ -1,0 +1,68 @@
+---
+# =============================================================================
+# Role: storage — Optional ZFS pool and dataset configuration
+# Only runs when enable_zfs: true in playbook vars
+# =============================================================================
+
+- name: Install ZFS utilities
+  ansible.builtin.apt:
+    name:
+      - zfsutils-linux
+      - zfs-auto-snapshot
+    state: present
+  tags: [zfs]
+
+- name: Check if ZFS pool already exists
+  ansible.builtin.command: zpool list {{ zfs_pool_name }}
+  register: zpool_check
+  failed_when: false
+  changed_when: false
+  tags: [zfs]
+
+- name: Create ZFS pool (RAID-Z or single disk)
+  ansible.builtin.command: >
+    zpool create -f
+    -o ashift=12
+    -O compression=lz4
+    -O atime=off
+    -O checksum=sha256
+    -O xattr=sa
+    -O dnodesize=auto
+    -O normalization=formD
+    -O mountpoint=/{{ zfs_pool_name }}
+    {{ zfs_pool_name }} {{ zfs_disk }}
+  when:
+    - zpool_check.rc != 0
+    - zfs_disk | length > 0
+  tags: [zfs]
+
+- name: Create ZFS datasets for Superbox services
+  community.general.zfs:
+    name: "{{ zfs_pool_name }}/{{ item.name }}"
+    state: present
+    extra_zfs_properties:
+      compression: lz4
+      atime: "off"
+      mountpoint: "/opt/superbox/data/{{ item.mount }}"
+  loop:
+    - { name: opencloud,   mount: opencloud }
+    - { name: nas,         mount: nas/shares }
+    - { name: backups,     mount: backup }
+    - { name: monitoring,  mount: monitoring }
+    - { name: authentik,   mount: authentik }
+    - { name: passwords,   mount: passwords }
+  tags: [zfs]
+
+- name: Configure zfs-auto-snapshot schedule
+  ansible.builtin.lineinfile:
+    path: /etc/cron.d/zfs-auto-snapshot
+    line: "{{ item }}"
+    create: true
+    mode: '0644'
+  loop:
+    - "*/15 * * * * root /usr/sbin/zfs-auto-snapshot --quiet --syslog --label=frequent --keep=4 //"
+    - "0 * * * * root /usr/sbin/zfs-auto-snapshot --quiet --syslog --label=hourly --keep=24 //"
+    - "7 0 * * * root /usr/sbin/zfs-auto-snapshot --quiet --syslog --label=daily --keep=31 //"
+    - "14 0 * * 7 root /usr/sbin/zfs-auto-snapshot --quiet --syslog --label=weekly --keep=8 //"
+    - "28 0 1 * * root /usr/sbin/zfs-auto-snapshot --quiet --syslog --label=monthly --keep=12 //"
+  tags: [zfs]

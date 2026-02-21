@@ -1,0 +1,18 @@
+# =============================================================================
+# Superbox — Ansible Inventory Template
+# Copy to ansible/inventory (gitignored) and edit before running make provision
+# =============================================================================
+
+[superbox]
+# Replace with your server's IP address or hostname
+# For local provisioning (run on the server itself), use: localhost ansible_connection=local
+192.168.1.100 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_ed25519
+
+# Example for local provisioning:
+# localhost ansible_connection=local
+
+[superbox:vars]
+# Optional: override default variables here
+# superbox_user=superbox
+# enable_zfs=false
+# docker_compose_version=2.24.5

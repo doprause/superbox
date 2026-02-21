@@ -1,0 +1,76 @@
+---
+# =============================================================================
+# Role: base — OS updates, required packages, and sysctl hardening
+# =============================================================================
+
+- name: Update apt cache and upgrade all packages
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: dist
+    cache_valid_time: 3600
+  tags: [packages]
+
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - wget
+      - git
+      - make
+      - jq
+      - openssl
+      - ca-certificates
+      - gnupg
+      - lsb-release
+      - apt-transport-https
+      - software-properties-common
+      - ufw
+      - fail2ban
+      - unattended-upgrades
+      - htop
+      - vim
+    state: present
+  tags: [packages]
+
+- name: Configure unattended-upgrades for security updates
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/50unattended-upgrades
+    content: |
+      Unattended-Upgrade::Allowed-Origins {
+        "${distro_id}:${distro_codename}-security";
+      };
+      Unattended-Upgrade::Automatic-Reboot "false";
+      Unattended-Upgrade::Remove-Unused-Dependencies "true";
+    mode: '0644'
+  tags: [packages]
+
+- name: Apply sysctl hardening settings
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: true
+  loop:
+    # Network hardening
+    - { key: net.ipv4.tcp_syncookies,                   value: "1" }
+    - { key: net.ipv4.conf.all.rp_filter,               value: "1" }
+    - { key: net.ipv4.conf.default.rp_filter,            value: "1" }
+    - { key: net.ipv4.conf.all.accept_redirects,         value: "0" }
+    - { key: net.ipv4.conf.default.accept_redirects,     value: "0" }
+    - { key: net.ipv4.conf.all.send_redirects,           value: "0" }
+    - { key: net.ipv4.conf.default.send_redirects,       value: "0" }
+    - { key: net.ipv4.conf.all.accept_source_route,      value: "0" }
+    - { key: net.ipv4.icmp_echo_ignore_broadcasts,       value: "1" }
+    - { key: net.ipv4.icmp_ignore_bogus_error_responses, value: "1" }
+    # Performance tuning
+    - { key: net.core.somaxconn,                         value: "65535" }
+    - { key: net.ipv4.ip_local_port_range,               value: "1024 65535" }
+    - { key: net.core.netdev_max_backlog,                 value: "65535" }
+    - { key: vm.swappiness,                              value: "10" }
+    - { key: fs.file-max,                                value: "2097152" }
+  tags: [sysctl]
+
+- name: Set timezone
+  community.general.timezone:
+    name: "{{ lookup('env', 'TZ') | default('Europe/Berlin') }}"
+  tags: [timezone]

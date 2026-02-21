@@ -1,0 +1,94 @@
+---
+# =============================================================================
+# Role: superbox — Create system user, directories, clone repo, start stack
+# =============================================================================
+
+- name: Create superbox system group
+  ansible.builtin.group:
+    name: "{{ superbox_user }}"
+    gid: "{{ superbox_gid }}"
+    system: true
+    state: present
+  tags: [user]
+
+- name: Create superbox system user
+  ansible.builtin.user:
+    name: "{{ superbox_user }}"
+    uid: "{{ superbox_uid }}"
+    group: "{{ superbox_user }}"
+    groups: docker
+    home: "{{ superbox_home }}"
+    shell: /bin/bash
+    system: true
+    create_home: true
+    state: present
+  tags: [user]
+
+- name: Create Superbox home directory
+  ansible.builtin.file:
+    path: "{{ superbox_home }}"
+    state: directory
+    owner: "{{ superbox_user }}"
+    group: "{{ superbox_user }}"
+    mode: '0755'
+  tags: [dirs]
+
+- name: Clone Superbox repository (if repo_url is set)
+  ansible.builtin.git:
+    repo: "{{ repo_url }}"
+    dest: "{{ superbox_home }}"
+    version: main
+    force: false
+  become_user: "{{ superbox_user }}"
+  when: repo_url | length > 0
+  tags: [repo]
+
+- name: Run setup.sh to generate secrets and create data directories
+  ansible.builtin.command:
+    cmd: make setup
+    chdir: "{{ superbox_home }}"
+  become_user: "{{ superbox_user }}"
+  args:
+    creates: "{{ superbox_home }}/.env"
+  tags: [setup]
+
+- name: Start Superbox stack
+  ansible.builtin.command:
+    cmd: make up
+    chdir: "{{ superbox_home }}"
+  become_user: "{{ superbox_user }}"
+  tags: [start]
+
+- name: Install systemd service for auto-start on boot
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/superbox.service
+    content: |
+      [Unit]
+      Description=Superbox Docker Compose Stack
+      After=docker.service network-online.target
+      Requires=docker.service
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      WorkingDirectory={{ superbox_home }}
+      ExecStart=/usr/bin/docker compose up -d --remove-orphans
+      ExecStop=/usr/bin/docker compose down
+      User={{ superbox_user }}
+      Group={{ superbox_user }}
+      TimeoutStartSec=300
+      TimeoutStopSec=120
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: '0644'
+  notify: Enable Superbox systemd service
+  tags: [systemd]
+
+handlers:
+  - name: Enable Superbox systemd service
+    ansible.builtin.systemd:
+      name: superbox
+      daemon_reload: true
+      enabled: true
+      state: started

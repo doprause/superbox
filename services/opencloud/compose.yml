@@ -1,0 +1,99 @@
+# =============================================================================
+# Module: OpenCloud — File sync/share, CalDAV, CardDAV, Collabora editing
+# =============================================================================
+
+networks:
+  traefik-net:
+    external: true
+  opencloud-net:
+    name: opencloud-net
+    external: false
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # OpenCloud EU — File sync/share, calendar, contacts, spaces
+  # ---------------------------------------------------------------------------
+  opencloud:
+    image: opencloudeu/opencloud:rolling
+    container_name: opencloud
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - traefik-net
+      - opencloud-net
+    volumes:
+      - ./data/opencloud:/var/lib/opencloud
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+      - OC_DOMAIN=cloud.${DOMAIN}
+      - OC_URL=https://cloud.${DOMAIN}
+      - OC_ADMIN_USER=${OC_ADMIN_USER:-admin}
+      - OC_ADMIN_PASSWORD=${OC_ADMIN_PASSWORD}
+      # Collabora WOPI integration
+      - COLLABORA_DOMAIN=collabora.${DOMAIN}
+      - WOPI_DOMAIN=cloud.${DOMAIN}
+      # Disable built-in TLS (Traefik handles it)
+      - OC_INSECURE=false
+      - PROXY_TLS=false
+      # OIDC / Authentik integration
+      - PROXY_OIDC_ISSUER=https://auth.${DOMAIN}/application/o/opencloud/
+      - WEB_OIDC_CLIENT_ID=opencloud
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.opencloud.rule=Host(`cloud.${DOMAIN}`)"
+      - "traefik.http.routers.opencloud.entrypoints=websecure"
+      - "traefik.http.routers.opencloud.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.opencloud.middlewares=chain-public@file"
+      - "traefik.http.services.opencloud.loadbalancer.server.port=9200"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.superbox.module=opencloud"
+
+  # ---------------------------------------------------------------------------
+  # Collabora Online — Real-time document/spreadsheet/presentation editing
+  # Integrates with OpenCloud via WOPI protocol
+  # ---------------------------------------------------------------------------
+  collabora:
+    image: collabora/code:24.04
+    container_name: collabora
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_add:
+      - MKNOD  # Required by Collabora's sandboxing
+    networks:
+      - traefik-net
+      - opencloud-net
+    volumes:
+      - ./data/collabora:/opt/collaboraoffice/share/extensions
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+      - DONT_GEN_SSL_CERT=YES
+      - aliasgroup1=https://cloud.${DOMAIN}:443
+      - username=admin
+      - password=${OC_ADMIN_PASSWORD}
+      - extra_params=--o:ssl.enable=false --o:ssl.termination=true
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.collabora.rule=Host(`collabora.${DOMAIN}`)"
+      - "traefik.http.routers.collabora.entrypoints=websecure"
+      - "traefik.http.routers.collabora.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.collabora.middlewares=chain-public@file"
+      - "traefik.http.services.collabora.loadbalancer.server.port=9980"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.superbox.module=opencloud"
+
+  # ---------------------------------------------------------------------------
+  # Apache Tika — Full-text extraction for OpenCloud search indexing
+  # ---------------------------------------------------------------------------
+  tika:
+    image: apache/tika:2.9
+    container_name: tika
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - opencloud-net
+    labels:
+      - "com.superbox.module=opencloud"

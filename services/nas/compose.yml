@@ -1,0 +1,58 @@
+# =============================================================================
+# Module: NAS — Samba SMB/CIFS shares and FileBrowser web UI
+# =============================================================================
+
+networks:
+  traefik-net:
+    external: true
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Samba — SMB/CIFS network file shares for Windows, Mac, and Linux clients
+  # ---------------------------------------------------------------------------
+  samba:
+    image: dperson/samba:latest
+    container_name: samba
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    # Samba must run on host network for proper NetBIOS/SMB broadcast discovery
+    network_mode: host
+    volumes:
+      - ./services/nas/samba/smb.conf:/etc/samba/smb.conf:ro
+      - ./data/nas/shares:/shares
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+      - USERID=${PUID:-1000}
+      - GROUPID=${PGID:-1000}
+    labels:
+      - "com.superbox.module=nas"
+
+  # ---------------------------------------------------------------------------
+  # FileBrowser — Web-based file manager for NAS shares
+  # ---------------------------------------------------------------------------
+  filebrowser:
+    image: filebrowser/filebrowser:v2.32
+    container_name: filebrowser
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    user: "${PUID:-1000}:${PGID:-1000}"
+    networks:
+      - traefik-net
+    volumes:
+      - ./data/nas/shares:/srv
+      - ./data/filebrowser/database.db:/database.db
+      - ./data/filebrowser/settings.json:/.filebrowser.json
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.filebrowser.rule=Host(`files.${DOMAIN}`)"
+      - "traefik.http.routers.filebrowser.entrypoints=websecure"
+      - "traefik.http.routers.filebrowser.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.filebrowser.middlewares=chain-secure@file"
+      - "traefik.http.services.filebrowser.loadbalancer.server.port=80"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.superbox.module=nas"

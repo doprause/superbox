@@ -1,0 +1,92 @@
+# =============================================================================
+# Module: Management — Portainer, Homepage dashboard, Watchtower
+# This module is REQUIRED. Do not disable.
+# =============================================================================
+
+networks:
+  traefik-net:
+    external: true
+  socket-proxy-net:
+    external: true
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Portainer CE — Docker container management UI
+  # ---------------------------------------------------------------------------
+  portainer:
+    image: portainer/portainer-ce:2.21
+    container_name: portainer
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - traefik-net
+      - socket-proxy-net
+    volumes:
+      - ./data/portainer:/data
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.${DOMAIN}`)"
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.portainer.middlewares=chain-internal@file"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.superbox.module=management"
+
+  # ---------------------------------------------------------------------------
+  # Homepage — Beautiful service dashboard with system widgets
+  # ---------------------------------------------------------------------------
+  homepage:
+    image: ghcr.io/gethomepage/homepage:v0.10
+    container_name: homepage
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - traefik-net
+      - socket-proxy-net
+    volumes:
+      - ./services/management/homepage/config:/app/config:ro
+      - ./data/homepage:/app/data
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.homepage.rule=Host(`${DOMAIN}`) || Host(`www.${DOMAIN}`)"
+      - "traefik.http.routers.homepage.entrypoints=websecure"
+      - "traefik.http.routers.homepage.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.homepage.middlewares=chain-secure@file"
+      - "traefik.http.services.homepage.loadbalancer.server.port=3000"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.superbox.module=management"
+
+  # ---------------------------------------------------------------------------
+  # Watchtower — Automatic container image updates (nightly, opt-in via label)
+  # ---------------------------------------------------------------------------
+  watchtower:
+    image: containrrr/watchtower:1.7
+    container_name: watchtower
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - socket-proxy-net
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+      - DOCKER_HOST=tcp://socket-proxy:2375
+      # Only update containers with the label: com.centurylinklabs.watchtower.enable=true
+      - WATCHTOWER_LABEL_ENABLE=true
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_INCLUDE_STOPPED=false
+      - WATCHTOWER_NOTIFICATIONS=shoutrrr
+      # Schedule: nightly at 03:00
+      - WATCHTOWER_SCHEDULE=0 0 3 * * *
+      - WATCHTOWER_TIMEOUT=60
+    labels:
+      - "com.superbox.module=management"

@@ -1,0 +1,76 @@
+# =============================================================================
+# Alertmanager — Alert Routing Configuration
+# Configure your notification receivers below.
+# =============================================================================
+
+global:
+  # How long to wait before re-sending a resolved alert
+  resolve_timeout: 5m
+
+  # SMTP settings for email alerts (optional)
+  # smtp_smarthost: 'smtp.gmail.com:587'
+  # smtp_from: 'alertmanager@yourdomain.com'
+  # smtp_auth_username: 'your@email.com'
+  # smtp_auth_password: 'your-app-password'
+
+# Templates for notification messages
+templates:
+  - /etc/alertmanager/templates/*.tmpl
+
+# ---------------------------------------------------------------------------
+# Routing tree
+# ---------------------------------------------------------------------------
+route:
+  # Default receiver for all alerts
+  receiver: blackhole
+
+  # Group alerts by alertname and service to reduce noise
+  group_by: [alertname, service, severity]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+  # Route critical alerts immediately
+  routes:
+    - match:
+        severity: critical
+      receiver: blackhole
+      repeat_interval: 1h
+
+    - match:
+        severity: warning
+      receiver: blackhole
+      repeat_interval: 4h
+
+# ---------------------------------------------------------------------------
+# Receivers
+# Configure at least one receiver. Examples below.
+# ---------------------------------------------------------------------------
+receivers:
+  # Null receiver — silences all alerts (default until configured)
+  - name: blackhole
+
+  # Email receiver example (uncomment and configure)
+  # - name: email-admin
+  #   email_configs:
+  #     - to: admin@yourdomain.com
+  #       from: alertmanager@yourdomain.com
+  #       require_tls: true
+
+  # Slack receiver example (uncomment and configure)
+  # - name: slack
+  #   slack_configs:
+  #     - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+  #       channel: '#alerts'
+  #       title: 'Superbox Alert'
+  #       text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+
+# ---------------------------------------------------------------------------
+# Inhibition rules — suppress child alerts when a parent fires
+# ---------------------------------------------------------------------------
+inhibit_rules:
+  - source_match:
+      severity: critical
+    target_match:
+      severity: warning
+    equal: [alertname, service]

@@ -1,0 +1,35 @@
+# =============================================================================
+# Homepage — System Widgets Configuration
+# Shows real-time system stats in the dashboard header.
+# =============================================================================
+
+---
+- resources:
+    cpu: true
+    memory: true
+    disk:
+      - /
+    cputemp: true
+    uptime: true
+    units: metric
+    refresh: 3000
+
+- datetime:
+    text_size: xl
+    format:
+      timeStyle: short
+      dateStyle: short
+      hourCycle: h23
+
+- search:
+    provider: duckduckgo
+    target: _blank
+    placeholder: Search the web...
+
+- openmeteo:
+    label: Local Weather
+    latitude: 52.52
+    longitude: 13.40
+    timezone: Europe/Berlin
+    units: metric
+    cache: 5

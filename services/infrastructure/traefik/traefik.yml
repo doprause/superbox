@@ -1,0 +1,120 @@
+# =============================================================================
+# Traefik v3 — Static Configuration
+# This file is read once at startup. Changes require a Traefik restart.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Global settings
+# ---------------------------------------------------------------------------
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: false
+
+# ---------------------------------------------------------------------------
+# API and Dashboard
+# ---------------------------------------------------------------------------
+api:
+  dashboard: true
+  debug: false
+  insecure: false
+
+# ---------------------------------------------------------------------------
+# Entrypoints
+# ---------------------------------------------------------------------------
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      # Redirect all HTTP traffic to HTTPS
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+    forwardedHeaders:
+      trustedIPs:
+        - "127.0.0.1/32"
+        - "10.0.0.0/8"
+        - "172.16.0.0/12"
+        - "192.168.0.0/16"
+
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: letsencrypt
+    http3:
+      advertisedPort: 443
+    forwardedHeaders:
+      trustedIPs:
+        - "127.0.0.1/32"
+        - "10.0.0.0/8"
+        - "172.16.0.0/12"
+        - "192.168.0.0/16"
+
+  # Internal metrics endpoint — not exposed externally
+  metrics:
+    address: ":8899"
+
+# ---------------------------------------------------------------------------
+# Certificate resolvers (Let's Encrypt ACME)
+# ---------------------------------------------------------------------------
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: "${ACME_EMAIL}"
+      storage: /acme.json
+      # HTTP-01 challenge — requires port 80 to be accessible
+      httpChallenge:
+        entryPoint: web
+      # Uncomment for DNS-01 challenge (needed for wildcard certs):
+      # dnsChallenge:
+      #   provider: cloudflare
+      #   delayBeforeCheck: 0
+
+# ---------------------------------------------------------------------------
+# Providers
+# ---------------------------------------------------------------------------
+providers:
+  # Docker provider — reads labels from containers
+  docker:
+    endpoint: "tcp://socket-proxy:2375"
+    exposedByDefault: false
+    network: traefik-net
+    watch: true
+
+  # File provider — reads dynamic config from /etc/traefik/dynamic/
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+log:
+  level: INFO
+  format: json
+
+# Access log (required by CrowdSec for threat analysis)
+accessLog:
+  filePath: /var/log/traefik/access.log
+  format: json
+  bufferingSize: 100
+  filters:
+    statusCodes:
+      - "200-599"
+
+# ---------------------------------------------------------------------------
+# Metrics (Prometheus)
+# ---------------------------------------------------------------------------
+metrics:
+  prometheus:
+    addEntryPointsLabels: true
+    addServicesLabels: true
+    addRoutersLabels: true
+    entryPoint: metrics
+    buckets:
+      - 0.1
+      - 0.3
+      - 1.2
+      - 5.0

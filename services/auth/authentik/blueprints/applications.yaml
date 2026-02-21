@@ -1,0 +1,63 @@
+# =============================================================================
+# Authentik Blueprint — Applications
+# Registers each service as an Authentik application (appears in the portal).
+# Applied automatically on startup.
+# =============================================================================
+version: 1
+metadata:
+  name: Superbox Applications
+  labels:
+    blueprints.goauthentik.io/instantiate: "true"
+
+entries:
+  # ---------------------------------------------------------------------------
+  # Grafana
+  # ---------------------------------------------------------------------------
+  - model: authentik_core.application
+    state: present
+    identifiers:
+      slug: grafana
+    attrs:
+      name: Grafana
+      slug: grafana
+      provider: !Find [authentik_providers_oauth2.oauth2provider, [name, Grafana Provider]]
+      meta_launch_url: "https://grafana.$(DOMAIN)"
+      meta_description: Infrastructure dashboards and alerting
+      meta_icon: https://raw.githubusercontent.com/grafana/grafana/main/public/img/grafana_icon.svg
+      group: Monitoring
+      policy_engine_mode: any
+      open_in_new_tab: true
+
+  # ---------------------------------------------------------------------------
+  # Portainer
+  # ---------------------------------------------------------------------------
+  - model: authentik_core.application
+    state: present
+    identifiers:
+      slug: portainer
+    attrs:
+      name: Portainer
+      slug: portainer
+      provider: !Find [authentik_providers_proxy.proxyprovider, [name, Portainer Forward Auth]]
+      meta_launch_url: "https://portainer.$(DOMAIN)"
+      meta_description: Docker container management
+      group: Management
+      policy_engine_mode: any
+      open_in_new_tab: true
+
+  # ---------------------------------------------------------------------------
+  # FileBrowser
+  # ---------------------------------------------------------------------------
+  - model: authentik_core.application
+    state: present
+    identifiers:
+      slug: filebrowser
+    attrs:
+      name: FileBrowser
+      slug: filebrowser
+      provider: !Find [authentik_providers_proxy.proxyprovider, [name, FileBrowser Forward Auth]]
+      meta_launch_url: "https://files.$(DOMAIN)"
+      meta_description: Web-based NAS file manager
+      group: Files
+      policy_engine_mode: any
+      open_in_new_tab: true

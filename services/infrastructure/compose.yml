@@ -1,0 +1,145 @@
+# =============================================================================
+# Module: Infrastructure — Traefik, CrowdSec, Socket Proxy
+# This module is REQUIRED. Do not disable.
+# =============================================================================
+
+networks:
+  traefik-net:
+    name: traefik-net
+    external: false
+  crowdsec-net:
+    name: crowdsec-net
+    external: false
+  socket-proxy-net:
+    name: socket-proxy-net
+    external: false
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Socket Proxy — restricts Docker API access (no secrets/auth endpoints)
+  # All services that need Docker API access must use this, not the raw socket.
+  # ---------------------------------------------------------------------------
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.2
+    container_name: socket-proxy
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - socket-proxy-net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      # Allow: containers list/inspect (needed by Traefik, Portainer, Watchtower)
+      CONTAINERS: "1"
+      SERVICES: "1"
+      TASKS: "1"
+      NETWORKS: "1"
+      INFO: "1"
+      VERSION: "1"
+      PING: "1"
+      # Block: no auth, secrets, or exec
+      AUTH: "0"
+      SECRETS: "0"
+      # POST is required by Portainer and Watchtower for container lifecycle operations.
+      # Traefik only needs read access, but we enable POST for the management tools.
+      POST: "1"
+      BUILD: "0"
+      COMMIT: "0"
+      CONFIGS: "0"
+      DISTRIBUTION: "0"
+      IMAGES: "0"
+      NODES: "0"
+      PLUGINS: "0"
+      SESSION: "0"
+      SWARM: "0"
+      SYSTEM: "0"
+      VOLUMES: "0"
+    labels:
+      - "com.superbox.module=infrastructure"
+
+  # ---------------------------------------------------------------------------
+  # Traefik v3 — Reverse proxy, TLS termination, Let's Encrypt ACME
+  # ---------------------------------------------------------------------------
+  traefik:
+    image: traefik:v3.3
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - traefik-net
+      - crowdsec-net
+      - socket-proxy-net
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./services/infrastructure/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./services/infrastructure/traefik/dynamic:/etc/traefik/dynamic:ro
+      - ./services/infrastructure/traefik/acme.json:/acme.json
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+    labels:
+      - "traefik.enable=true"
+      # Dashboard — internal access only (protect with forward auth in production)
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.${DOMAIN}`)"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+      - "traefik.http.routers.traefik-dashboard.middlewares=chain-internal@file"
+      - "com.superbox.module=infrastructure"
+    depends_on:
+      - socket-proxy
+      - crowdsec
+
+  # ---------------------------------------------------------------------------
+  # CrowdSec — Threat intelligence engine and log analysis
+  # ---------------------------------------------------------------------------
+  crowdsec:
+    image: crowdsecurity/crowdsec:v1.6
+    container_name: crowdsec
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - crowdsec-net
+    volumes:
+      - ./services/infrastructure/crowdsec/acquis.yaml:/etc/crowdsec/acquis.yaml:ro
+      - ./data/crowdsec/config:/etc/crowdsec
+      - ./data/crowdsec/data:/var/lib/crowdsec/data
+      # Read Traefik access logs for analysis
+      - ./data/traefik/logs:/var/log/traefik:ro
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+      - COLLECTIONS=crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors
+      - DISABLE_ONLINE_API=false
+      - BOUNCER_KEY_TRAEFIK=${CROWDSEC_BOUNCER_KEY}
+    labels:
+      - "com.superbox.module=infrastructure"
+
+  # ---------------------------------------------------------------------------
+  # CrowdSec Bouncer for Traefik — enforces CrowdSec ban decisions at ingress
+  # ---------------------------------------------------------------------------
+  bouncer-traefik:
+    image: crowdsecurity/traefik-bouncer:v1.3
+    container_name: bouncer-traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - crowdsec-net
+      - traefik-net
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+      - CROWDSEC_BOUNCER_APIKEY=${CROWDSEC_BOUNCER_KEY}
+      - CROWDSEC_AGENT_HOST=crowdsec:8080
+      - CROWDSEC_BOUNCER_LOG_LEVEL=info
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.crowdsec-bouncer.forwardauth.address=http://bouncer-traefik:8080/api/v1/forwardAuth"
+      - "traefik.http.middlewares.crowdsec-bouncer.forwardauth.trustForwardHeader=true"
+      - "com.superbox.module=infrastructure"
+    depends_on:
+      - crowdsec

@@ -1,0 +1,26 @@
+# =============================================================================
+# CrowdSec — Log Acquisition Configuration
+# Defines which log files CrowdSec should monitor for threat detection.
+# =============================================================================
+
+---
+# Traefik access logs — primary source for HTTP threat detection
+filenames:
+  - /var/log/traefik/access.log
+labels:
+  type: traefik
+
+---
+# System authentication logs — detect SSH brute force, sudo abuse
+filenames:
+  - /var/log/auth.log
+  - /var/log/syslog
+labels:
+  type: syslog
+
+---
+# Linux kernel logs
+filenames:
+  - /var/log/kern.log
+labels:
+  type: syslog

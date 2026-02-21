@@ -1,0 +1,29 @@
+# =============================================================================
+# Traefik Dynamic Config — TLS Options
+# Enforces TLS 1.2+ and strong cipher suites.
+# =============================================================================
+
+tls:
+  options:
+    # Default TLS options — applied to all routers that don't specify options
+    default:
+      minVersion: VersionTLS12
+      sniStrict: true
+      cipherSuites:
+        # TLS 1.3 ciphers (automatic, cannot be configured)
+        # TLS 1.2 ciphers — only strong ones
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+        - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
+      curvePreferences:
+        - CurveP521
+        - CurveP384
+        - X25519
+
+    # Modern TLS — TLS 1.3 only (for highest-security services like Bitwarden)
+    modern:
+      minVersion: VersionTLS13
+      sniStrict: true

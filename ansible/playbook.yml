@@ -1,0 +1,37 @@
+---
+# =============================================================================
+# Superbox — Host Provisioning Playbook
+# Provisions a fresh Ubuntu 24.04 LTS server with everything needed to run
+# the Superbox Docker Compose stack.
+#
+# Usage: ansible-playbook playbook.yml -i inventory
+#        or: make provision
+# =============================================================================
+
+- name: Provision Superbox host
+  hosts: superbox
+  become: true
+  gather_facts: true
+
+  vars:
+    superbox_user: superbox
+    superbox_uid: 1000
+    superbox_gid: 1000
+    superbox_home: /opt/superbox
+    repo_url: ""              # Set to your git repo URL for auto-clone
+    enable_zfs: false         # Set to true to configure ZFS storage
+    zfs_pool_name: tank       # ZFS pool name (if enable_zfs: true)
+    zfs_disk: ""              # e.g. /dev/sdb  (if enable_zfs: true)
+
+  roles:
+    - role: base
+      tags: [base]
+    - role: docker
+      tags: [docker]
+    - role: firewall
+      tags: [firewall]
+    - role: storage
+      tags: [storage]
+      when: enable_zfs | bool
+    - role: superbox
+      tags: [superbox]

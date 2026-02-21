@@ -1,0 +1,32 @@
+# =============================================================================
+# Authentik Blueprint — Groups
+# Declares admin and user groups. Applied automatically on startup.
+# =============================================================================
+version: 1
+metadata:
+  name: Superbox Groups
+  labels:
+    blueprints.goauthentik.io/instantiate: "true"
+
+entries:
+  # Admin group — full access, MFA enforced
+  - model: authentik_core.group
+    state: present
+    identifiers:
+      name: superbox-admins
+    attrs:
+      name: superbox-admins
+      is_superuser: false
+      attributes:
+        superbox_role: admin
+
+  # Standard users — regular access, MFA optional
+  - model: authentik_core.group
+    state: present
+    identifiers:
+      name: superbox-users
+    attrs:
+      name: superbox-users
+      is_superuser: false
+      attributes:
+        superbox_role: user

@@ -1,0 +1,49 @@
+# =============================================================================
+# Superbox — Master Docker Compose Orchestrator
+# Requires Docker Compose v2.20+ for `include` support
+#
+# Comment out any line below to disable that module entirely.
+# REQUIRED modules (infrastructure, management) must not be disabled.
+# =============================================================================
+
+include:
+  # -------------------------------------------------------------------------
+  # REQUIRED — core networking, TLS, and security
+  # -------------------------------------------------------------------------
+  - ./services/infrastructure/compose.yml
+
+  # -------------------------------------------------------------------------
+  # REQUIRED — container management UI and service dashboard
+  # -------------------------------------------------------------------------
+  - ./services/management/compose.yml
+
+  # -------------------------------------------------------------------------
+  # RECOMMENDED — single sign-on (OIDC/OAuth2/SAML/forward-auth)
+  # Disable only if you use an external IdP or don't need SSO
+  # -------------------------------------------------------------------------
+  - ./services/auth/compose.yml
+
+  # -------------------------------------------------------------------------
+  # OPTIONAL — file sync/share, CalDAV, CardDAV, document editing
+  # -------------------------------------------------------------------------
+  - ./services/opencloud/compose.yml
+
+  # -------------------------------------------------------------------------
+  # OPTIONAL — Prometheus metrics, Grafana dashboards, alerting
+  # -------------------------------------------------------------------------
+  - ./services/monitoring/compose.yml
+
+  # -------------------------------------------------------------------------
+  # OPTIONAL — SMB/CIFS network shares and web file manager
+  # -------------------------------------------------------------------------
+  - ./services/nas/compose.yml
+
+  # -------------------------------------------------------------------------
+  # OPTIONAL — automated encrypted backups (local + offsite)
+  # -------------------------------------------------------------------------
+  - ./services/backup/compose.yml
+
+  # -------------------------------------------------------------------------
+  # OPTIONAL — self-hosted password manager (Bitwarden Lite)
+  # -------------------------------------------------------------------------
+  - ./services/passwords/compose.yml

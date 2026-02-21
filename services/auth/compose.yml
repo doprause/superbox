@@ -1,0 +1,156 @@
+# =============================================================================
+# Module: Auth — Authentik SSO (OIDC/OAuth2/SAML/Forward Auth)
+# Provides single sign-on for all services in the stack.
+# =============================================================================
+
+networks:
+  traefik-net:
+    external: true
+  auth-net:
+    name: auth-net
+    external: false
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — Authentik database
+  # Isolated to auth-net; no traefik-net connection
+  # ---------------------------------------------------------------------------
+  authentik-db:
+    image: postgres:16-alpine
+    container_name: authentik-db
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    user: "70:70"  # postgres user in alpine image
+    networks:
+      - auth-net
+    volumes:
+      - ./data/authentik-db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-authentik}
+      - POSTGRES_USER=${POSTGRES_USER:-authentik}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - PGDATA=/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-authentik} -d ${POSTGRES_DB:-authentik}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    labels:
+      - "com.superbox.module=auth"
+
+  # ---------------------------------------------------------------------------
+  # Redis — Authentik cache and session store
+  # ---------------------------------------------------------------------------
+  authentik-redis:
+    image: redis:7-alpine
+    container_name: authentik-redis
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    user: "999:999"  # redis user
+    networks:
+      - auth-net
+    volumes:
+      - ./data/authentik-redis:/data
+    command: redis-server --save 60 1 --loglevel warning --requirepass "${AUTHENTIK_SECRET_KEY}"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a ${AUTHENTIK_SECRET_KEY} ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    labels:
+      - "com.superbox.module=auth"
+
+  # ---------------------------------------------------------------------------
+  # Authentik Server — OIDC/OAuth2/SAML IdP, SSO portal, user management
+  # ---------------------------------------------------------------------------
+  authentik-server:
+    image: ghcr.io/goauthentik/server:2025.2
+    container_name: authentik-server
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    command: server
+    networks:
+      - traefik-net
+      - auth-net
+    volumes:
+      - ./data/authentik/media:/media
+      - ./data/authentik/templates:/templates
+      - ./data/authentik/certs:/certs
+      # Blueprints for IaC (declarative SSO configuration)
+      - ./services/auth/authentik/blueprints:/blueprints/superbox:ro
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+      - AUTHENTIK_REDIS__HOST=authentik-redis
+      - AUTHENTIK_REDIS__PASSWORD=${AUTHENTIK_SECRET_KEY}
+      - AUTHENTIK_POSTGRESQL__HOST=authentik-db
+      - AUTHENTIK_POSTGRESQL__USER=${POSTGRES_USER:-authentik}
+      - AUTHENTIK_POSTGRESQL__NAME=${POSTGRES_DB:-authentik}
+      - AUTHENTIK_POSTGRESQL__PASSWORD=${POSTGRES_PASSWORD}
+      - AUTHENTIK_SECRET_KEY=${AUTHENTIK_SECRET_KEY}
+      - AUTHENTIK_BOOTSTRAP_PASSWORD=${AUTHENTIK_BOOTSTRAP_PASSWORD}
+      - AUTHENTIK_BOOTSTRAP_EMAIL=${AUTHENTIK_BOOTSTRAP_EMAIL:-admin@example.com}
+      - AUTHENTIK_ERROR_REPORTING__ENABLED=false
+      - AUTHENTIK_AVATARS=gravatar,initials
+      # Domain (used for email links and cookie domain)
+      - AUTHENTIK_HOST=https://auth.${DOMAIN}
+      - AUTHENTIK_HOST_BROWSER=https://auth.${DOMAIN}
+    labels:
+      - "traefik.enable=true"
+      # Main SSO portal
+      - "traefik.http.routers.authentik.rule=Host(`auth.${DOMAIN}`)"
+      - "traefik.http.routers.authentik.entrypoints=websecure"
+      - "traefik.http.routers.authentik.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.authentik.middlewares=chain-public@file"
+      - "traefik.http.services.authentik.loadbalancer.server.port=9000"
+      # Outpost forward-auth endpoint — catch-all for all subdomains
+      - "traefik.http.routers.authentik-outpost.rule=HostRegexp(`{subdomain:[a-z0-9-]+}.${DOMAIN}`) && PathPrefix(`/outpost.goauthentik.io/`)"
+      - "traefik.http.routers.authentik-outpost.entrypoints=websecure"
+      - "traefik.http.routers.authentik-outpost.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.authentik-outpost.middlewares=chain-bare@file"
+      - "traefik.http.routers.authentik-outpost.priority=10"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.superbox.module=auth"
+    depends_on:
+      authentik-db:
+        condition: service_healthy
+      authentik-redis:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Authentik Worker — background tasks (email, webhooks, cache warming)
+  # ---------------------------------------------------------------------------
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:2025.2
+    container_name: authentik-worker
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    command: worker
+    networks:
+      - auth-net
+    volumes:
+      - ./data/authentik/media:/media
+      - ./data/authentik/certs:/certs
+      - ./services/auth/authentik/blueprints:/blueprints/superbox:ro
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+      - AUTHENTIK_REDIS__HOST=authentik-redis
+      - AUTHENTIK_REDIS__PASSWORD=${AUTHENTIK_SECRET_KEY}
+      - AUTHENTIK_POSTGRESQL__HOST=authentik-db
+      - AUTHENTIK_POSTGRESQL__USER=${POSTGRES_USER:-authentik}
+      - AUTHENTIK_POSTGRESQL__NAME=${POSTGRES_DB:-authentik}
+      - AUTHENTIK_POSTGRESQL__PASSWORD=${POSTGRES_PASSWORD}
+      - AUTHENTIK_SECRET_KEY=${AUTHENTIK_SECRET_KEY}
+    labels:
+      - "com.superbox.module=auth"
+    depends_on:
+      authentik-db:
+        condition: service_healthy
+      authentik-redis:
+        condition: service_healthy

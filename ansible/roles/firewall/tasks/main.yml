@@ -1,0 +1,104 @@
+---
+# =============================================================================
+# Role: firewall — UFW configuration and DOCKER-USER iptables chain
+# =============================================================================
+
+- name: Disable UFW to reset rules cleanly
+  community.general.ufw:
+    state: reset
+  tags: [firewall]
+
+- name: Set UFW default policies
+  community.general.ufw:
+    direction: "{{ item.direction }}"
+    policy: "{{ item.policy }}"
+  loop:
+    - { direction: incoming,  policy: deny }
+    - { direction: outgoing,  policy: allow }
+    - { direction: routed,    policy: deny }
+  tags: [firewall]
+
+- name: Allow SSH (port 22)
+  community.general.ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+    comment: SSH
+  tags: [firewall]
+
+- name: Allow HTTP (port 80) for Traefik / ACME
+  community.general.ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+    comment: HTTP (Traefik)
+  tags: [firewall]
+
+- name: Allow HTTPS (port 443) for Traefik
+  community.general.ufw:
+    rule: allow
+    port: "443"
+    proto: tcp
+    comment: HTTPS (Traefik)
+  tags: [firewall]
+
+- name: Allow Samba TCP ports (LAN only)
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+    src: "{{ lan_subnet | default('192.168.0.0/16') }}"
+    comment: Samba TCP
+  loop:
+    - "139"
+    - "445"
+  tags: [firewall, samba]
+
+- name: Allow Samba UDP ports (LAN only)
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: udp
+    src: "{{ lan_subnet | default('192.168.0.0/16') }}"
+    comment: Samba UDP
+  loop:
+    - "137"
+    - "138"
+  tags: [firewall, samba]
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+  tags: [firewall]
+
+# Prevent Docker from bypassing UFW by inserting a DOCKER-USER chain rule.
+# This ensures UFW rules apply to Docker-exposed ports.
+- name: Create UFW before.rules backup
+  ansible.builtin.copy:
+    src: /etc/ufw/before.rules
+    dest: /etc/ufw/before.rules.bak
+    remote_src: true
+    force: false
+    mode: '0640'
+  tags: [firewall]
+
+- name: Install DOCKER-USER iptables rules via ufw before.rules
+  ansible.builtin.blockinfile:
+    path: /etc/ufw/before.rules
+    insertbefore: "# don't delete the 'COMMIT'"
+    marker: "# {mark} SUPERBOX DOCKER-USER RULES"
+    block: |
+      # Drop packets to Docker-exposed ports from external networks
+      # that are not explicitly allowed by UFW above.
+      # This inserts into DOCKER-USER chain to take effect before Docker rules.
+      *filter
+      :DOCKER-USER - [0:0]
+      -A DOCKER-USER -i eth0 -j RETURN
+      COMMIT
+  notify: Reload UFW
+  tags: [firewall]
+
+handlers:
+  - name: Reload UFW
+    ansible.builtin.command: ufw reload
+    changed_when: true

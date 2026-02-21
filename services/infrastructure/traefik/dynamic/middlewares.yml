@@ -1,0 +1,125 @@
+# =============================================================================
+# Traefik Dynamic Config — Middleware Chains
+# Loaded automatically from the /etc/traefik/dynamic/ directory.
+# =============================================================================
+
+http:
+  middlewares:
+
+    # -------------------------------------------------------------------------
+    # Security Headers — applied to all chains
+    # -------------------------------------------------------------------------
+    security-headers:
+      headers:
+        # HSTS — force HTTPS for 1 year, include subdomains
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        # Prevent clickjacking
+        frameDeny: false
+        customFrameOptionsValue: "SAMEORIGIN"
+        # Prevent MIME sniffing
+        contentTypeNosniff: true
+        # XSS protection (legacy browsers)
+        browserXssFilter: true
+        # Referrer policy
+        referrerPolicy: "strict-origin-when-cross-origin"
+        # Permissions policy
+        permissionsPolicy: "camera=(), microphone=(), geolocation=(), payment=()"
+        # CSP — allow same-origin and Authentik for SSO
+        contentSecurityPolicy: >-
+          default-src 'self';
+          script-src 'self' 'unsafe-inline' 'unsafe-eval';
+          style-src 'self' 'unsafe-inline';
+          img-src 'self' data: blob:;
+          font-src 'self' data:;
+          connect-src 'self';
+          frame-ancestors 'self';
+        # Remove server header
+        customResponseHeaders:
+          Server: ""
+          X-Powered-By: ""
+
+    # -------------------------------------------------------------------------
+    # Rate Limiter — per IP, prevents brute force and DDoS
+    # -------------------------------------------------------------------------
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+        period: 1s
+        sourceCriterion:
+          ipStrategy:
+            depth: 1
+
+    # -------------------------------------------------------------------------
+    # Authentik Forward Auth — validates session for protected services
+    # -------------------------------------------------------------------------
+    authentik-forward-auth:
+      forwardAuth:
+        address: "http://authentik-server:9000/outpost.goauthentik.io/auth/traefik"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-authentik-username
+          - X-authentik-groups
+          - X-authentik-email
+          - X-authentik-name
+          - X-authentik-uid
+          - X-authentik-jwt
+          - X-authentik-meta-jwks
+          - X-authentik-meta-outpost
+          - X-authentik-meta-provider
+          - X-authentik-meta-app
+          - X-authentik-meta-version
+
+    # -------------------------------------------------------------------------
+    # CrowdSec Bouncer — checks IP reputation, blocks banned IPs
+    # (Referenced via the bouncer-traefik container label)
+    # -------------------------------------------------------------------------
+
+    # -------------------------------------------------------------------------
+    # HTTPS Redirect (entrypoint-level — defined in traefik.yml)
+    # -------------------------------------------------------------------------
+
+    # -------------------------------------------------------------------------
+    # chain-secure — full protection: CrowdSec + Authentik + headers + rate limit
+    # Use for: all publicly accessible services that require authentication
+    # -------------------------------------------------------------------------
+    chain-secure:
+      chain:
+        middlewares:
+          - crowdsec-bouncer@docker
+          - rate-limit
+          - authentik-forward-auth
+          - security-headers
+
+    # -------------------------------------------------------------------------
+    # chain-internal — security headers + auth; no CrowdSec (trusted network)
+    # Use for: admin UIs accessible only from LAN/VPN (Portainer, Traefik dashboard)
+    # -------------------------------------------------------------------------
+    chain-internal:
+      chain:
+        middlewares:
+          - rate-limit
+          - authentik-forward-auth
+          - security-headers
+
+    # -------------------------------------------------------------------------
+    # chain-public — rate limit + headers only; no auth
+    # Use for: public-facing endpoints that handle their own auth (Bitwarden, etc.)
+    # -------------------------------------------------------------------------
+    chain-public:
+      chain:
+        middlewares:
+          - crowdsec-bouncer@docker
+          - rate-limit
+          - security-headers
+
+    # -------------------------------------------------------------------------
+    # chain-bare — headers only; no auth, no rate limit
+    # Use for: internal service-to-service calls
+    # -------------------------------------------------------------------------
+    chain-bare:
+      chain:
+        middlewares:
+          - security-headers

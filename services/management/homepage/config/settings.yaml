@@ -1,0 +1,47 @@
+# =============================================================================
+# Homepage — Application Settings
+# =============================================================================
+
+---
+title: Superbox
+description: All-In-One Small Business Server
+
+# Background (use a URL or leave blank for solid color)
+# background: https://images.unsplash.com/photo-1517694712202-14dd9538aa97
+
+# Theme
+theme: dark
+color: slate
+
+# Header style: underline | boxed | clean | boxedWidgets
+headerStyle: boxed
+
+# Show the search bar
+quicklaunch:
+  searchDescriptions: true
+  hideInternetSearch: true
+  showSearchSuggestions: false
+
+# Layout — column counts
+layout:
+  Files & Collaboration:
+    style: row
+    columns: 2
+  Security & Identity:
+    style: row
+    columns: 2
+  Monitoring:
+    style: row
+    columns: 2
+  Management:
+    style: row
+    columns: 3
+
+# Status indicators
+statusStyle: dot
+
+# Language
+language: en
+
+# Logfile (for debugging)
+logpath: /app/data/logs

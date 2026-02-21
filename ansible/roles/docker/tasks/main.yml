@@ -1,0 +1,103 @@
+---
+# =============================================================================
+# Role: docker — Install Docker CE and Docker Compose v2 plugin
+# =============================================================================
+
+- name: Remove old Docker packages (if any)
+  ansible.builtin.apt:
+    name:
+      - docker
+      - docker-engine
+      - docker.io
+      - containerd
+      - runc
+      - docker-compose
+    state: absent
+  tags: [docker]
+
+- name: Add Docker GPG key
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: '0644'
+    force: false
+  tags: [docker]
+
+- name: Add Docker apt repository
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [arch={{ ansible_architecture | replace('x86_64', 'amd64') }}
+      signed-by=/etc/apt/keyrings/docker.asc]
+      https://download.docker.com/linux/ubuntu
+      {{ ansible_distribution_release }} stable
+    filename: docker
+    state: present
+  tags: [docker]
+
+- name: Install Docker CE and plugins
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: true
+  tags: [docker]
+
+- name: Start and enable Docker service
+  ansible.builtin.systemd:
+    name: docker
+    state: started
+    enabled: true
+  tags: [docker]
+
+- name: Add superbox user to docker group
+  ansible.builtin.user:
+    name: "{{ superbox_user }}"
+    groups: docker
+    append: true
+  tags: [docker]
+
+- name: Configure Docker daemon for logging and security
+  ansible.builtin.copy:
+    dest: /etc/docker/daemon.json
+    content: |
+      {
+        "log-driver": "json-file",
+        "log-opts": {
+          "max-size": "10m",
+          "max-file": "3"
+        },
+        "userns-remap": "default",
+        "live-restore": true,
+        "no-new-privileges": true,
+        "default-ulimits": {
+          "nofile": {
+            "Name": "nofile",
+            "Hard": 65536,
+            "Soft": 65536
+          }
+        }
+      }
+    mode: '0644'
+  notify: Restart Docker
+  tags: [docker]
+
+- name: Verify Docker Compose version
+  ansible.builtin.command: docker compose version --short
+  register: compose_version
+  changed_when: false
+  tags: [docker]
+
+- name: Display Docker Compose version
+  ansible.builtin.debug:
+    msg: "Docker Compose version: {{ compose_version.stdout }}"
+  tags: [docker]
+
+handlers:
+  - name: Restart Docker
+    ansible.builtin.systemd:
+      name: docker
+      state: restarted

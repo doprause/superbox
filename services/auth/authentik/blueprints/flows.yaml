@@ -1,0 +1,55 @@
+# =============================================================================
+# Authentik Blueprint — Flows
+# Customizes login, enrollment, and MFA flows.
+# The default flows are good enough for most setups; this blueprint adds
+# MFA enforcement for the superbox-admins group.
+# Applied automatically on startup.
+# =============================================================================
+version: 1
+metadata:
+  name: Superbox Flows
+  labels:
+    blueprints.goauthentik.io/instantiate: "true"
+
+entries:
+  # ---------------------------------------------------------------------------
+  # MFA Device Enrollment Flow
+  # Prompts users to enroll a TOTP authenticator on first login
+  # ---------------------------------------------------------------------------
+  - model: authentik_flows.flow
+    state: present
+    identifiers:
+      slug: superbox-mfa-enrollment
+    attrs:
+      name: Superbox MFA Enrollment
+      slug: superbox-mfa-enrollment
+      title: Set up Two-Factor Authentication
+      designation: stage_configuration
+      authentication: require_authenticated
+
+  # MFA TOTP setup stage
+  - model: authentik_stages_authenticator_totp.authenticatortotpstage
+    state: present
+    identifiers:
+      name: superbox-totp-setup
+    attrs:
+      name: superbox-totp-setup
+      friendly_name: Authenticator App (TOTP)
+      digits: "6"
+
+  # ---------------------------------------------------------------------------
+  # Admin MFA Enforcement Policy
+  # Requires MFA for all members of superbox-admins group
+  # ---------------------------------------------------------------------------
+  - model: authentik_policies_expression.expressionpolicy
+    state: present
+    identifiers:
+      name: Superbox Require MFA for Admins
+    attrs:
+      name: Superbox Require MFA for Admins
+      expression: |
+        # Require MFA for admin group members
+        groups = [g.name for g in request.user.ak_groups.all()]
+        if "superbox-admins" in groups:
+            return ak_is_group_member(request.user, name="superbox-admins")
+        return True

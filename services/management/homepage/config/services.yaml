@@ -1,0 +1,64 @@
+# =============================================================================
+# Homepage — Service Links Configuration
+# Groups services into categories with icons and status checks.
+# =============================================================================
+
+---
+- Files & Collaboration:
+    - OpenCloud:
+        icon: nextcloud.png  # closest available icon
+        href: "https://cloud.{{HOMEPAGE_VAR_DOMAIN}}"
+        description: File sync, calendar, contacts, collaboration
+        ping: "https://cloud.{{HOMEPAGE_VAR_DOMAIN}}"
+        siteMonitor: "https://cloud.{{HOMEPAGE_VAR_DOMAIN}}"
+
+    - FileBrowser:
+        icon: filebrowser.png
+        href: "https://files.{{HOMEPAGE_VAR_DOMAIN}}"
+        description: Web-based NAS file manager
+        ping: "https://files.{{HOMEPAGE_VAR_DOMAIN}}"
+
+- Security & Identity:
+    - Authentik:
+        icon: authentik.png
+        href: "https://auth.{{HOMEPAGE_VAR_DOMAIN}}"
+        description: Single Sign-On — OIDC/OAuth2/SAML/MFA
+        ping: "https://auth.{{HOMEPAGE_VAR_DOMAIN}}"
+
+    - Bitwarden:
+        icon: bitwarden.png
+        href: "https://vault.{{HOMEPAGE_VAR_DOMAIN}}"
+        description: Self-hosted password manager
+        ping: "https://vault.{{HOMEPAGE_VAR_DOMAIN}}"
+
+- Monitoring:
+    - Grafana:
+        icon: grafana.png
+        href: "https://grafana.{{HOMEPAGE_VAR_DOMAIN}}"
+        description: Infrastructure dashboards and alerting
+        ping: "https://grafana.{{HOMEPAGE_VAR_DOMAIN}}"
+
+    - Prometheus:
+        icon: prometheus.png
+        href: "https://prometheus.{{HOMEPAGE_VAR_DOMAIN}}"
+        description: Metrics collection and storage
+        ping: "https://prometheus.{{HOMEPAGE_VAR_DOMAIN}}"
+
+- Management:
+    - Portainer:
+        icon: portainer.png
+        href: "https://portainer.{{HOMEPAGE_VAR_DOMAIN}}"
+        description: Docker container management UI
+        ping: "https://portainer.{{HOMEPAGE_VAR_DOMAIN}}"
+
+    - Traefik:
+        icon: traefik.png
+        href: "https://traefik.{{HOMEPAGE_VAR_DOMAIN}}"
+        description: Reverse proxy dashboard
+        ping: "https://traefik.{{HOMEPAGE_VAR_DOMAIN}}"
+
+    - Duplicati:
+        icon: duplicati.png
+        href: "https://backup.{{HOMEPAGE_VAR_DOMAIN}}"
+        description: Automated encrypted backups
+        ping: "https://backup.{{HOMEPAGE_VAR_DOMAIN}}"

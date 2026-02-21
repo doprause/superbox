@@ -1,0 +1,52 @@
+# =============================================================================
+# Module: Backup — Duplicati automated encrypted backups
+# =============================================================================
+
+networks:
+  traefik-net:
+    external: true
+  backup-net:
+    name: backup-net
+    external: false
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Duplicati — Web UI backup tool with local and offsite support
+  # Supports: S3, Backblaze B2, SFTP, FTP, Google Drive, OneDrive, local disk
+  # ---------------------------------------------------------------------------
+  duplicati:
+    image: duplicati/duplicati:2.0.9
+    container_name: duplicati
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    user: "${PUID:-1000}:${PGID:-1000}"
+    networks:
+      - traefik-net
+      - backup-net
+    volumes:
+      # Duplicati config and job database
+      - ./data/backup/config:/data/Duplicati
+      # Restore staging area
+      - ./data/backup/restore:/restore
+      # Source data to back up (read-only)
+      - ./data/opencloud:/source/opencloud:ro
+      - ./data/authentik:/source/authentik:ro
+      - ./data/nas/shares:/source/nas:ro
+      - ./data/passwords:/source/passwords:ro
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      # Optional: passphrase for encrypted backups
+      - SETTINGS_ENCRYPTION_KEY=${BACKUP_PASSPHRASE}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.duplicati.rule=Host(`backup.${DOMAIN}`)"
+      - "traefik.http.routers.duplicati.entrypoints=websecure"
+      - "traefik.http.routers.duplicati.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.duplicati.middlewares=chain-internal@file"
+      - "traefik.http.services.duplicati.loadbalancer.server.port=8200"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.superbox.module=backup"
