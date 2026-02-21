@@ -22,8 +22,10 @@ entries:
       authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
       client_type: confidential
       client_id: grafana
+      invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
       redirect_uris:
-        - !Format ["https://grafana.%s/login/generic_oauth", !Env "DOMAIN"]
+        - url: !Format ["https://grafana.%s/login/generic_oauth", !Env "DOMAIN"]
+          matching_mode: strict
       access_token_validity: hours=1
       refresh_token_validity: days=30
       property_mappings:
