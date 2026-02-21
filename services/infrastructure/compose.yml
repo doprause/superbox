@@ -21,7 +21,7 @@ services:
   # All services that need Docker API access must use this, not the raw socket.
   # ---------------------------------------------------------------------------
   socket-proxy:
-    image: tecnativa/docker-socket-proxy:v0.4
+    image: tecnativa/docker-socket-proxy:0.3.0
     container_name: socket-proxy
     restart: unless-stopped
     security_opt:
