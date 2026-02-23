@@ -62,3 +62,15 @@ entries:
       mode: forward_single
       external_host: !Format ["https://files.%s", !Env "DOMAIN"]
       access_token_validity: hours=12
+
+  # ---------------------------------------------------------------------------
+  # Embedded Outpost — assign proxy providers so forward auth works
+  # ---------------------------------------------------------------------------
+  - model: authentik_outposts.outpost
+    state: present
+    identifiers:
+      name: authentik Embedded Outpost
+    attrs:
+      providers:
+        - !Find [authentik_providers_proxy.proxyprovider, [name, Portainer Forward Auth]]
+        - !Find [authentik_providers_proxy.proxyprovider, [name, FileBrowser Forward Auth]]
