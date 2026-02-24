@@ -261,6 +261,7 @@ env_set_if_empty "OC_ADMIN_PASSWORD"         "$(gen_password)"
 env_set_if_empty "BITWARDEN_MASTER_PASSWORD" "$(gen_password)"
 env_set_if_empty "CROWDSEC_BOUNCER_KEY"      "$(gen_secret)"
 env_set_if_empty "GRAFANA_ADMIN_PASSWORD"    "$(gen_password)"
+env_set_if_empty "GRAFANA_OAUTH_SECRET"      "$(gen_secret)"
 env_set_if_empty "FILEBROWSER_ADMIN_PASSWORD" "$(gen_password)"
 env_set_if_empty "BACKUP_PASSPHRASE"         "$(gen_secret)"
 

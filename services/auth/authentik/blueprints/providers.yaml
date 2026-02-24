@@ -22,6 +22,7 @@ entries:
       authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
       client_type: confidential
       client_id: grafana
+      client_secret: !Env "GRAFANA_OAUTH_SECRET"
       invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
       redirect_uris:
         - url: !Format ["https://grafana.%s/login/generic_oauth", !Env "DOMAIN"]
