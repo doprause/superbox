@@ -24,6 +24,11 @@ services:
     image: tecnativa/docker-socket-proxy:latest
     container_name: socket-proxy
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     security_opt:
       - no-new-privileges:true
     networks:
@@ -66,6 +71,11 @@ services:
     image: traefik:v3.6
     container_name: traefik
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     security_opt:
       - no-new-privileges:true
     networks:
@@ -104,6 +114,11 @@ services:
     image: crowdsecurity/crowdsec:v1.6.8
     container_name: crowdsec
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     security_opt:
       - no-new-privileges:true
     networks:
@@ -129,6 +144,11 @@ services:
     image: fbonalair/traefik-crowdsec-bouncer:0.5.0
     container_name: bouncer-traefik
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     security_opt:
       - no-new-privileges:true
     networks:

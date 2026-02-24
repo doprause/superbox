@@ -17,6 +17,11 @@ services:
     image: ghcr.io/bitwarden/self-host:latest
     container_name: bitwarden
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     security_opt:
       - no-new-privileges:true
     networks:

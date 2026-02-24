@@ -20,6 +20,11 @@ services:
     image: postgres:16-alpine
     container_name: authentik-db
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     security_opt:
       - no-new-privileges:true
     user: "70:70"  # postgres user in alpine image
@@ -48,6 +53,11 @@ services:
     image: redis:7-alpine
     container_name: authentik-redis
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     security_opt:
       - no-new-privileges:true
     user: "999:999"  # redis user
@@ -72,6 +82,11 @@ services:
     image: ghcr.io/goauthentik/server:2025.2
     container_name: authentik-server
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     security_opt:
       - no-new-privileges:true
     command: server
@@ -129,6 +144,11 @@ services:
     image: ghcr.io/goauthentik/server:2025.2
     container_name: authentik-worker
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     security_opt:
       - no-new-privileges:true
     command: worker

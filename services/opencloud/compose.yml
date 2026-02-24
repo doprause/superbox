@@ -18,6 +18,11 @@ services:
     image: opencloudeu/opencloud:4.0.3
     container_name: opencloud
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     security_opt:
       - no-new-privileges:true
     networks:
@@ -58,6 +63,11 @@ services:
     image: collabora/code:25.04.9.1.1
     container_name: collabora
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     security_opt:
       - no-new-privileges:true
     cap_add:
@@ -91,6 +101,11 @@ services:
     image: apache/tika:3.2.3.0
     container_name: tika
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     security_opt:
       - no-new-privileges:true
     networks:

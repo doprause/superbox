@@ -15,6 +15,11 @@ services:
     image: dperson/samba:latest
     container_name: samba
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     security_opt:
       - no-new-privileges:true
     # Samba must run on host network for proper NetBIOS/SMB broadcast discovery
@@ -36,6 +41,11 @@ services:
     image: filebrowser/filebrowser:v2.59.0
     container_name: filebrowser
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     security_opt:
       - no-new-privileges:true
     user: "${PUID:-1000}:${PGID:-1000}"

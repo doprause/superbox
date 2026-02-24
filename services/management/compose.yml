@@ -18,6 +18,11 @@ services:
     image: portainer/portainer-ce:2.21.5
     container_name: portainer
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     security_opt:
       - no-new-privileges:true
     networks:
@@ -44,6 +49,11 @@ services:
     image: ghcr.io/gethomepage/homepage:v1.10
     container_name: homepage
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     security_opt:
       - no-new-privileges:true
     networks:
@@ -73,6 +83,11 @@ services:
     image: containrrr/watchtower:1.7.1
     container_name: watchtower
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     security_opt:
       - no-new-privileges:true
     networks:
