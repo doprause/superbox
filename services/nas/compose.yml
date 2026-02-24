@@ -43,8 +43,8 @@ services:
       - traefik-net
     volumes:
       - ../../data/nas/shares:/srv
-      - ../../data/filebrowser/database.db:/database.db
-      - ../../data/filebrowser/settings.json:/.filebrowser.json
+      - ../../data/filebrowser/database:/database
+      - ../../data/filebrowser/settings.json:/config/settings.json
     environment:
       - TZ=${TZ:-Europe/Berlin}
     labels:

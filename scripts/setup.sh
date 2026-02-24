@@ -288,6 +288,7 @@ DATA_DIRS=(
   "data/monitoring/grafana"
   "data/monitoring/alertmanager"
   "data/nas/shares"
+  "data/filebrowser"
   "data/backup/config"
   "data/backup/restore"
   "data/passwords"
@@ -297,6 +298,31 @@ for dir in "${DATA_DIRS[@]}"; do
   mkdir -p "$ROOT_DIR/$dir"
   log "Created $dir"
 done
+
+# ---------------------------------------------------------------------------
+# FileBrowser config files — must be files, not directories, before first start.
+# Docker bind-mounts create directories when the target file doesn't exist yet.
+# ---------------------------------------------------------------------------
+FB_SETTINGS="$ROOT_DIR/data/filebrowser/settings.json"
+FB_DB_DIR="$ROOT_DIR/data/filebrowser/database"
+if [ ! -f "$FB_SETTINGS" ]; then
+  cat > "$FB_SETTINGS" <<'EOF'
+{
+  "port": 80,
+  "baseURL": "",
+  "address": "",
+  "log": "stdout",
+  "database": "/database/filebrowser.db",
+  "root": "/srv",
+  "noAuth": true
+}
+EOF
+  log "Created data/filebrowser/settings.json (noAuth=true — Authentik handles login)"
+else
+  log "data/filebrowser/settings.json already exists — skipping"
+fi
+mkdir -p "$FB_DB_DIR"
+log "Created data/filebrowser/database/"
 
 # Set ownership — default all dirs to PUID:PGID
 chown -R "${PUID}:${PGID}" "$ROOT_DIR/data" 2>/dev/null || \
