@@ -141,6 +141,7 @@ services:
     environment:
       - TZ=${TZ:-Europe/Berlin}
       - DOMAIN=${DOMAIN}
+      - GRAFANA_OAUTH_SECRET=${GRAFANA_OAUTH_SECRET}
       - AUTHENTIK_REDIS__HOST=authentik-redis
       - AUTHENTIK_REDIS__PASSWORD=${AUTHENTIK_SECRET_KEY}
       - AUTHENTIK_POSTGRESQL__HOST=authentik-db
