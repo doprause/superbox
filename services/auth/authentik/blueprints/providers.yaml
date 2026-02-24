@@ -74,3 +74,23 @@ entries:
       providers:
         - !Find [authentik_providers_proxy.proxyprovider, [name, Portainer Forward Auth]]
         - !Find [authentik_providers_proxy.proxyprovider, [name, FileBrowser Forward Auth]]
+      config:
+        authentik_host: !Format ["https://auth.%s", !Env "DOMAIN"]
+        authentik_host_browser: !Format ["https://auth.%s", !Env "DOMAIN"]
+        authentik_host_insecure: false
+        log_level: info
+        docker_labels: null
+        docker_network: null
+        docker_map_ports: true
+        container_image: null
+        refresh_interval: "minutes=5"
+        kubernetes_replicas: 1
+        kubernetes_namespace: default
+        object_naming_template: "ak-outpost-%(name)s"
+        kubernetes_json_patches: null
+        kubernetes_service_type: ClusterIP
+        kubernetes_image_pull_secrets: []
+        kubernetes_ingress_class_name: null
+        kubernetes_disabled_components: []
+        kubernetes_ingress_annotations: {}
+        kubernetes_ingress_secret_name: authentik-outpost-tls
