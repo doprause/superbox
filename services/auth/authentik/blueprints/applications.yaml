@@ -22,7 +22,7 @@ entries:
       slug: grafana
       provider: !Find [authentik_providers_oauth2.oauth2provider, [name, Grafana Provider]]
       meta_launch_url: !Format ["https://grafana.%s", !Env "DOMAIN"]
-      meta_description: Infrastructure dashboards and alerting
+      meta_description: Metrics dashboards and alerting
       meta_icon: https://raw.githubusercontent.com/grafana/grafana/main/public/img/grafana_icon.svg
       group: Monitoring
       policy_engine_mode: any
