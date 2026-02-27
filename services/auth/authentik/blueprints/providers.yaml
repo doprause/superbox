@@ -65,6 +65,21 @@ entries:
       access_token_validity: hours=12
 
   # ---------------------------------------------------------------------------
+  # Traefik Dashboard — Forward Auth provider
+  # ---------------------------------------------------------------------------
+  - model: authentik_providers_proxy.proxyprovider
+    state: present
+    identifiers:
+      name: Traefik Forward Auth
+    attrs:
+      name: Traefik Forward Auth
+      authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+      mode: forward_single
+      external_host: !Format ["https://traefik.%s", !Env "DOMAIN"]
+      access_token_validity: hours=12
+
+  # ---------------------------------------------------------------------------
   # OpenCloud — OAuth2/OIDC provider (public client, PKCE)
   # ---------------------------------------------------------------------------
   - model: authentik_providers_oauth2.oauth2provider
@@ -99,6 +114,7 @@ entries:
       providers:
         - !Find [authentik_providers_proxy.proxyprovider, [name, Portainer Forward Auth]]
         - !Find [authentik_providers_proxy.proxyprovider, [name, FileBrowser Forward Auth]]
+        - !Find [authentik_providers_proxy.proxyprovider, [name, Traefik Forward Auth]]
       config:
         authentik_host: !Format ["https://auth.%s", !Env "DOMAIN"]
         authentik_host_browser: !Format ["https://auth.%s", !Env "DOMAIN"]
