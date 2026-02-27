@@ -30,10 +30,11 @@ services:
       - opencloud-net
     entrypoint: ["/bin/sh", "-c"]
     command: ["if [ ! -f /etc/opencloud/opencloud.yaml ]; then printf 'no\\n' | /usr/bin/opencloud init; fi; exec /usr/bin/opencloud server"]
-    # Allow container to resolve auth.DOMAIN for server-side OIDC discovery fetch.
+    # Allow container to resolve custom domains via Docker host → Traefik.
     # On a server with real DNS this is not needed; remove for production.
     extra_hosts:
-      - "auth.${DOMAIN}:host-gateway"
+      - "auth.${DOMAIN}:host-gateway"    # OIDC server-side calls to Authentik
+      - "cloud.${DOMAIN}:host-gateway"   # ocdav self-calls (e.g. /data endpoint)
     volumes:
       - ../../data/opencloud/data:/var/lib/opencloud
       - ../../data/opencloud/config:/etc/opencloud
@@ -44,8 +45,15 @@ services:
       - OC_ADMIN_USER=${OC_ADMIN_USER:-admin}
       - OC_ADMIN_PASSWORD=${OC_ADMIN_PASSWORD}
       # Collabora WOPI integration
+      # COLLABORA_DOMAIN is used by `opencloud init` to pre-populate the config file.
+      # COLLABORATION_* env vars override config at runtime so the collaboration
+      # service (WOPI host) actually starts and knows where to find Collabora.
       - COLLABORA_DOMAIN=collabora.${DOMAIN}
       - WOPI_DOMAIN=cloud.${DOMAIN}
+      - COLLABORATION_APP_ADDR=https://collabora.${DOMAIN}
+      - COLLABORATION_WOPI_SRC=https://cloud.${DOMAIN}
+      # Skip TLS for self-signed cert on Collabora (test server only)
+      - COLLABORATION_APP_INSECURE=${OC_INSECURE:-false}
       # Disable built-in TLS (Traefik handles it)
       # Set OC_INSECURE=true in .env when using self-signed certs (test server only)
       - OC_INSECURE=${OC_INSECURE:-false}
