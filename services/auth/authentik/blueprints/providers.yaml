@@ -78,8 +78,8 @@ entries:
       client_id: opencloud
       invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
       redirect_uris:
-        - url: !Format ["https://cloud.%s/", !Env "DOMAIN"]
-          matching_mode: prefix
+        - url: !Format ["https://cloud.%s/.*", !Env "DOMAIN"]
+          matching_mode: regex
       access_token_validity: hours=1
       refresh_token_validity: days=30
       property_mappings:
