@@ -61,3 +61,20 @@ entries:
       group: Files
       policy_engine_mode: any
       open_in_new_tab: true
+
+  # ---------------------------------------------------------------------------
+  # OpenCloud
+  # ---------------------------------------------------------------------------
+  - model: authentik_core.application
+    state: present
+    identifiers:
+      slug: opencloud
+    attrs:
+      name: OpenCloud
+      slug: opencloud
+      provider: !Find [authentik_providers_oauth2.oauth2provider, [name, OpenCloud Provider]]
+      meta_launch_url: !Format ["https://cloud.%s", !Env "DOMAIN"]
+      meta_description: File sync, sharing, calendar and contacts
+      group: Files
+      policy_engine_mode: any
+      open_in_new_tab: true
