@@ -102,7 +102,10 @@ services:
         max-size: "10m"
         max-file: "3"
     security_opt:
-      - no-new-privileges:true
+      # no-new-privileges is intentionally omitted: Collabora's coolforkit binary relies
+      # on file capabilities (cap_sys_chroot, cap_fowner, cap_chown) which are blocked by
+      # no-new-privileges. seccomp:unconfined allows CLONE_NEWUSER for the -ns sandbox variant.
+      - seccomp:unconfined
     cap_add:
       - MKNOD  # Required by Collabora's sandboxing
     networks:
