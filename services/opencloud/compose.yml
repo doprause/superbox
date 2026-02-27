@@ -46,10 +46,12 @@ services:
       - OC_INSECURE=false
       - PROXY_TLS=false
       # OIDC / Authentik integration
-      # OC_OIDC_ISSUER: global issuer, also sets the authority the web SPA uses
+      # OC_OIDC_ISSUER: browser-facing public URL (used by web SPA for redirect)
       - OC_OIDC_ISSUER=https://auth.${DOMAIN}/application/o/opencloud/
-      - PROXY_OIDC_ISSUER=https://auth.${DOMAIN}/application/o/opencloud/
-      # Rewrite /.well-known/openid-configuration to expose Authentik's endpoints
+      # PROXY_OIDC_ISSUER: internal container hostname (proxy fetches discovery + JWKS server-side)
+      # Docker DNS cannot resolve auth.${DOMAIN} (custom local domain) from inside containers
+      - PROXY_OIDC_ISSUER=http://authentik-server:9000/application/o/opencloud/
+      # Rewrite /.well-known/openid-configuration to expose Authentik's endpoints to the browser
       - PROXY_OIDC_REWRITE_WELLKNOWN=true
       - WEB_OIDC_CLIENT_ID=opencloud
       # Auto-provision OpenCloud accounts on first OIDC login
