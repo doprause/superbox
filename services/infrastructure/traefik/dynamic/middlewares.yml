@@ -26,15 +26,9 @@ http:
         referrerPolicy: "strict-origin-when-cross-origin"
         # Permissions policy
         permissionsPolicy: "camera=(), microphone=(), geolocation=(), payment=()"
-        # CSP — allow same-origin and Authentik for SSO
-        contentSecurityPolicy: >-
-          default-src 'self';
-          script-src 'self' 'unsafe-inline' 'unsafe-eval';
-          style-src 'self' 'unsafe-inline';
-          img-src 'self' data: blob:;
-          font-src 'self' data:;
-          connect-src 'self';
-          frame-ancestors 'self';
+        # CSP is intentionally omitted here — it is highly app-specific and a wrong
+        # global CSP blocks SPAs (OpenCloud, Grafana) from reaching the Authentik
+        # auth domain. Add per-service CSP via Traefik labels where needed.
         # Remove server header
         customResponseHeaders:
           Server: ""
