@@ -77,6 +77,7 @@ entries:
       client_type: public
       client_id: opencloud
       invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+      signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
       redirect_uris:
         - url: !Format ["https://cloud.%s/.*", !Env "DOMAIN"]
           matching_mode: regex
