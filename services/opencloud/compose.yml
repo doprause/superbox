@@ -133,12 +133,9 @@ services:
     environment:
       - TZ=${TZ:-Europe/Berlin}
       - DONT_GEN_SSL_CERT=YES
-      # Two separate aliasgroups so both hostnames are treated as primaries and get
-      # their hostname properly extracted into the WOPI allowlist and frame-ancestors.
-      # Collabora 25.04 bug: alias entries (2nd+ in a group) store the full URI not
-      # just the hostname, breaking WOPI vetting and frame-ancestors for alias entries.
+      # aliasgroup1: internal OpenCloud container URL — adds "opencloud" to the WOPI
+      # allowlist so Collabora accepts CheckFileInfo from COLLABORATION_WOPI_SRC.
       - aliasgroup1=http://opencloud:9200
-      - aliasgroup2=https://cloud.${DOMAIN}:443
       - username=admin
       - password=${OC_ADMIN_PASSWORD}
       - extra_params=--o:ssl.enable=false --o:ssl.termination=true
@@ -147,8 +144,12 @@ services:
       - "traefik.http.routers.collabora.rule=Host(`collabora.${DOMAIN}`)"
       - "traefik.http.routers.collabora.entrypoints=websecure"
       - "traefik.http.routers.collabora.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.collabora.middlewares=chain-public@file"
+      - "traefik.http.routers.collabora.middlewares=chain-public@file,collabora-csp"
       - "traefik.http.services.collabora.loadbalancer.server.port=9980"
+      # Override Collabora's frame-ancestors CSP: aliasgroup only adds "opencloud"
+      # but the embedding page is cloud.DOMAIN. Traefik rewrites the header so the
+      # browser allows the iframe. Also fixes connect-src for the WebSocket.
+      - "traefik.http.middlewares.collabora-csp.headers.customResponseHeaders.Content-Security-Policy=default-src 'none'; script-src 'self' 'unsafe-eval'; style-src 'self'; img-src 'self' data: blob: https://www.collaboraoffice.com; media-src 'self' blob:; object-src 'self'; font-src 'self'; connect-src 'self' https://www.zotero.org https://api.zotero.org wss://collabora.${DOMAIN} https://collabora.${DOMAIN}; frame-src 'self' blob: https://rating.collaboraonline.com; frame-ancestors https://cloud.${DOMAIN}"
       - "com.centurylinklabs.watchtower.enable=true"
       - "com.superbox.module=opencloud"
 
