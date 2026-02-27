@@ -129,7 +129,7 @@ services:
       - aliasgroup1=https://cloud.${DOMAIN}:443
       - username=admin
       - password=${OC_ADMIN_PASSWORD}
-      - extra_params=--o:ssl.enable=false --o:ssl.termination=true
+      - extra_params=--o:ssl.enable=false --o:ssl.termination=true --o:storage.wopi.host[0]=https://cloud.${DOMAIN}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.collabora.rule=Host(`collabora.${DOMAIN}`)"
