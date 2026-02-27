@@ -33,8 +33,9 @@ services:
     # Allow container to resolve custom domains via Docker host → Traefik.
     # On a server with real DNS this is not needed; remove for production.
     extra_hosts:
-      - "auth.${DOMAIN}:host-gateway"    # OIDC server-side calls to Authentik
-      - "cloud.${DOMAIN}:host-gateway"   # ocdav self-calls (e.g. /data endpoint)
+      - "auth.${DOMAIN}:host-gateway"         # OIDC server-side calls to Authentik
+      - "cloud.${DOMAIN}:host-gateway"        # ocdav self-calls (e.g. /data endpoint)
+      - "collabora.${DOMAIN}:host-gateway"    # collaboration service → Collabora WOPI app
     volumes:
       - ../../data/opencloud/data:/var/lib/opencloud
       - ../../data/opencloud/config:/etc/opencloud
