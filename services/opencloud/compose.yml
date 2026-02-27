@@ -46,8 +46,16 @@ services:
       - OC_INSECURE=false
       - PROXY_TLS=false
       # OIDC / Authentik integration
+      # OC_OIDC_ISSUER: global issuer, also sets the authority the web SPA uses
+      - OC_OIDC_ISSUER=https://auth.${DOMAIN}/application/o/opencloud/
       - PROXY_OIDC_ISSUER=https://auth.${DOMAIN}/application/o/opencloud/
+      # Rewrite /.well-known/openid-configuration to expose Authentik's endpoints
+      - PROXY_OIDC_REWRITE_WELLKNOWN=true
       - WEB_OIDC_CLIENT_ID=opencloud
+      # Auto-provision OpenCloud accounts on first OIDC login
+      - PROXY_AUTOPROVISION_ACCOUNTS=true
+      - PROXY_USER_OIDC_CLAIM=preferred_username
+      - PROXY_USER_CS3_CLAIM=username
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.opencloud.rule=Host(`cloud.${DOMAIN}`)"
