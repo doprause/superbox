@@ -66,6 +66,10 @@ services:
       # Use userinfo endpoint for token validation instead of JWT verification
       - PROXY_ACCESS_TOKEN_VERIFY_METHOD=none
       - WEB_OIDC_CLIENT_ID=opencloud
+      # Serve OIDC metadata from the same OpenCloud origin so the SPA avoids a
+      # cross-origin fetch to auth.DOMAIN (which would fail on self-signed certs).
+      # The proxy rewrites /.well-known to return the correct Authentik endpoints.
+      - WEB_OIDC_METADATA_URL=https://cloud.${DOMAIN}/.well-known/openid-configuration
       # Auto-provision OpenCloud accounts on first OIDC login
       - PROXY_AUTOPROVISION_ACCOUNTS=true
       - PROXY_USER_OIDC_CLAIM=preferred_username
