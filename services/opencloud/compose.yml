@@ -53,6 +53,8 @@ services:
       # PROXY_OIDC_ISSUER: internal container hostname for server-side token validation
       # Docker DNS cannot resolve auth.${DOMAIN} (local domain) from inside containers
       - PROXY_OIDC_ISSUER=http://authentik-server:9000/application/o/opencloud/
+      # Rewrite /.well-known so the proxy can serve OIDC discovery (IDP is disabled)
+      - PROXY_OIDC_REWRITE_WELLKNOWN=true
       # Use userinfo endpoint for token validation instead of JWT verification
       # Required because PROXY_OIDC_ISSUER uses internal hostname while token iss uses public URL
       - PROXY_OIDC_ACCESS_TOKEN_VERIFY_METHOD=none
