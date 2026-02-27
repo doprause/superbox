@@ -292,6 +292,29 @@ cap_add:
 
 Note: this is already applied in the repo. The systemplate read-only warnings in logs are non-fatal — Collabora clones what it needs into the jail instead of bind-mounting.
 
+**WOPI host vetting (`No authorized hosts found matching the target host [opencloud]`)**
+
+Collabora vets the WOPISrc hostname against the aliasgroup allowlist using `HostUtil::isWopiAllowed()`. The `storage.wopi.host` config key feeds a *different* list (LOK_ALLOW); it does not affect vetting. Only `aliasgroup` entries are checked. In Collabora 25.04, alias entries (2nd+ position in a group) store the full URI rather than extracting the hostname, so the match fails. Fix: put the internal OpenCloud URL first in `aliasgroup1` so it is treated as the primary and its hostname (`opencloud`) is extracted correctly:
+```yaml
+- aliasgroup1=http://opencloud:9200
+```
+
+**`frame-ancestors` not including `cloud.DOMAIN`**
+
+Collabora builds `frame-ancestors` only from `aliasgroup1` (the primary entry). With `http://opencloud:9200` as primary, `cloud.DOMAIN` never appears in `frame-ancestors`, blocking the OpenCloud iframe embed. Fix: override the `Content-Security-Policy` response header via a Traefik middleware on the Collabora service, setting `frame-ancestors https://cloud.DOMAIN`. Already applied in the repo.
+
+**WOPI proof key verification (`ProofKeys verification failed — Invalid timestamp`)**
+
+Collabora has no proof key configured by default (`/etc/coolwsd/proof_key` missing). OpenCloud's collaboration service rejects unsigned CheckFileInfo requests. Fix: `COLLABORATION_APP_PROOF_DISABLE=true`. Tied to `OC_INSECURE` in the repo so it only applies on test servers.
+
+**GetFile fails (`x509: certificate signed by unknown authority`)**
+
+The collaboration service fetches file content via `https://cloud.DOMAIN/data` (the CS3API data gateway). `OC_INSECURE=true` only covers the OIDC proxy, not this code path. Fix: `COLLABORATION_CS3API_DATAGATEWAY_INSECURE=true`. Tied to `OC_INSECURE` in the repo.
+
+**429 Too Many Requests on SVG icons**
+
+The Collabora editor loads dozens of SVG icon files simultaneously on open, exceeding the global 50-burst rate limit. Fix: remove `rate-limit` from the Collabora middleware chain. CrowdSec still covers IP reputation. Already applied in the repo.
+
 ### Traefik security headers and CSP
 
 The global `security-headers` middleware intentionally omits `Content-Security-Policy`. A global `connect-src 'self'` would break every SPA (OpenCloud, Grafana) that needs to call the Authentik domain. Add per-service CSP via Traefik labels where needed.
