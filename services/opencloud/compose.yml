@@ -130,15 +130,13 @@ services:
     environment:
       - TZ=${TZ:-Europe/Berlin}
       - DONT_GEN_SSL_CERT=YES
-      - aliasgroup1=https://cloud.${DOMAIN}:443
+      # aliasgroup1: the public OpenCloud URL and the internal container URL are aliases
+      # of the same WOPI host. Listing both here adds both to Collabora's WOPI allowlist.
+      # Collabora's WOPI vetting uses aliasgroup entries, not storage.wopi.host.
+      - aliasgroup1=https://cloud.${DOMAIN}:443,http://opencloud:9200
       - username=admin
       - password=${OC_ADMIN_PASSWORD}
-      # storage.wopi.host[0]: allow the internal OpenCloud container as WOPI host.
-      # Collabora makes server-side CheckFileInfo/GetFile calls to opencloud:9200 directly
-      # (container-to-container on opencloud-net) rather than routing through Traefik.
-      # This avoids DNS resolution issues and self-signed cert verification on the test server.
-      # For production (real DNS + valid certs): change to https://cloud.DOMAIN.
-      - extra_params=--o:ssl.enable=false --o:ssl.termination=true --o:storage.wopi.host[0]=opencloud
+      - extra_params=--o:ssl.enable=false --o:ssl.termination=true
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.collabora.rule=Host(`collabora.${DOMAIN}`)"
