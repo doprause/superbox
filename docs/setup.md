@@ -272,6 +272,26 @@ labels:
 ```
 Docker Compose expands `${DOMAIN}` in label values from `.env`.
 
+### Collabora (document editing)
+
+Collabora's `coolforkit` binary uses either file capabilities (`coolforkit-caps`) or user namespaces (`coolforkit-ns`) to sandbox document processes.
+
+Both approaches fail under Docker's default security configuration:
+- **`coolforkit-caps`**: requires file capabilities (`cap_sys_chroot`, `cap_fowner`, `cap_chown`) set on the binary via `setcap`. Docker's overlay filesystem is mounted `nosuid`, so file capabilities on binaries are ignored.
+- **`coolforkit-ns`**: requires `CLONE_NEWUSER` (user namespaces). Docker's default seccomp profile blocks this syscall.
+
+Symptoms: Collabora starts, port 9980 binds, but nothing responds — the forkit crashes immediately with `FTL Capabilities are not set` and coolwsd loops on `Waiting for a new child`.
+
+Fix: remove `no-new-privileges:true` and add `seccomp:unconfined` on the Collabora service. This allows `CLONE_NEWUSER` and file capabilities to work:
+```yaml
+security_opt:
+  - seccomp:unconfined  # no-new-privileges intentionally omitted
+cap_add:
+  - MKNOD
+```
+
+Note: this is already applied in the repo. The systemplate read-only warnings in logs are non-fatal — Collabora clones what it needs into the jail instead of bind-mounting.
+
 ### Traefik security headers and CSP
 
 The global `security-headers` middleware intentionally omits `Content-Security-Policy`. A global `connect-src 'self'` would break every SPA (OpenCloud, Grafana) that needs to call the Authentik domain. Add per-service CSP via Traefik labels where needed.
