@@ -38,11 +38,6 @@
         description: Infrastructure dashboards and alerting
         ping: "https://grafana.{{HOMEPAGE_VAR_DOMAIN}}"
 
-    - Prometheus:
-        icon: prometheus.png
-        href: "https://prometheus.{{HOMEPAGE_VAR_DOMAIN}}"
-        description: Metrics collection and storage
-        ping: "https://prometheus.{{HOMEPAGE_VAR_DOMAIN}}"
 
 - Management:
     - Portainer:

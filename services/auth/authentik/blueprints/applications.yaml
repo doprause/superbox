@@ -63,6 +63,23 @@ entries:
       open_in_new_tab: true
 
   # ---------------------------------------------------------------------------
+  # Homepage
+  # ---------------------------------------------------------------------------
+  - model: authentik_core.application
+    state: present
+    identifiers:
+      slug: homepage
+    attrs:
+      name: Homepage
+      slug: homepage
+      provider: !Find [authentik_providers_proxy.proxyprovider, [name, Homepage Forward Auth]]
+      meta_launch_url: !Format ["https://%s", !Env "DOMAIN"]
+      meta_description: Service dashboard
+      group: Management
+      policy_engine_mode: any
+      open_in_new_tab: true
+
+  # ---------------------------------------------------------------------------
   # Traefik Dashboard
   # ---------------------------------------------------------------------------
   - model: authentik_core.application

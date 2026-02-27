@@ -66,6 +66,7 @@ services:
       - TZ=${TZ:-Europe/Berlin}
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
+      - HOMEPAGE_VAR_DOMAIN=${DOMAIN}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.homepage.rule=Host(`${DOMAIN}`) || Host(`www.${DOMAIN}`)"
