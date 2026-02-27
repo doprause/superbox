@@ -29,7 +29,7 @@ services:
       - traefik-net
       - opencloud-net
     entrypoint: ["/bin/sh", "-c"]
-    command: "if [ ! -f /etc/opencloud/opencloud.yaml ]; then printf 'no\\n' | /usr/bin/opencloud init; fi; exec /usr/bin/opencloud server"
+    command: ["if [ ! -f /etc/opencloud/opencloud.yaml ]; then printf 'no\\n' | /usr/bin/opencloud init; fi; exec /usr/bin/opencloud server"]
     volumes:
       - ../../data/opencloud/data:/var/lib/opencloud
       - ../../data/opencloud/config:/etc/opencloud
