@@ -147,7 +147,9 @@ services:
       - "traefik.http.routers.collabora.rule=Host(`collabora.${DOMAIN}`)"
       - "traefik.http.routers.collabora.entrypoints=websecure"
       - "traefik.http.routers.collabora.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.collabora.middlewares=chain-public@file,collabora-csp"
+      # No rate-limit: Collabora loads dozens of SVG icons simultaneously on editor open;
+      # the global 50-burst limit causes 429s. CrowdSec covers IP reputation.
+      - "traefik.http.routers.collabora.middlewares=crowdsec-bouncer@file,security-headers@file,collabora-csp"
       - "traefik.http.services.collabora.loadbalancer.server.port=9980"
       # Override Collabora's frame-ancestors CSP: aliasgroup only adds "opencloud"
       # but the embedding page is cloud.DOMAIN. Traefik rewrites the header so the
