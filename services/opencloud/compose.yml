@@ -130,10 +130,11 @@ services:
     environment:
       - TZ=${TZ:-Europe/Berlin}
       - DONT_GEN_SSL_CERT=YES
-      # aliasgroup1: the public OpenCloud URL and the internal container URL are aliases
-      # of the same WOPI host. Listing both here adds both to Collabora's WOPI allowlist.
-      # Collabora's WOPI vetting uses aliasgroup entries, not storage.wopi.host.
-      - aliasgroup1=https://cloud.${DOMAIN}:443,http://opencloud:9200
+      # aliasgroup1: internal container URL first (becomes primary → hostname "opencloud"
+      # is extracted and added to the WOPI allowlist). Public URL second (alias).
+      # Collabora 25.04 bug: alias entries store the full URI, not the hostname, so
+      # the primary must be the internal URL to get correct WOPI host vetting.
+      - aliasgroup1=http://opencloud:9200,https://cloud.${DOMAIN}:443
       - username=admin
       - password=${OC_ADMIN_PASSWORD}
       - extra_params=--o:ssl.enable=false --o:ssl.termination=true
