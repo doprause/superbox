@@ -79,8 +79,12 @@ services:
       - "traefik.http.routers.opencloud.rule=Host(`cloud.${DOMAIN}`)"
       - "traefik.http.routers.opencloud.entrypoints=websecure"
       - "traefik.http.routers.opencloud.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.opencloud.middlewares=chain-public@file"
+      - "traefik.http.routers.opencloud.middlewares=chain-public@file,opencloud-csp"
       - "traefik.http.services.opencloud.loadbalancer.server.port=9200"
+      # Override OpenCloud's own restrictive CSP to allow the OIDC SPA to reach auth.DOMAIN.
+      # OpenCloud sets connect-src 'self' blob: with no external origins, which blocks oidc-client
+      # from POSTing to the token endpoint and fetching JWKS from Authentik.
+      - "traefik.http.middlewares.opencloud-csp.headers.customResponseHeaders.Content-Security-Policy=child-src 'self'; connect-src 'self' blob: https://auth.${DOMAIN} https://raw.githubusercontent.com/opencloud-eu/awesome-apps/ https://update.opencloud.eu/; default-src 'none'; font-src 'self'; frame-ancestors 'self'; frame-src 'self' blob: https://embed.diagrams.net/; img-src 'self' data: blob: https://raw.githubusercontent.com/opencloud-eu/awesome-apps/; manifest-src 'self'; media-src 'self'; object-src 'self' blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
       - "com.centurylinklabs.watchtower.enable=true"
       - "com.superbox.module=opencloud"
 
