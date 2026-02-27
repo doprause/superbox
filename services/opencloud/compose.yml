@@ -52,7 +52,11 @@ services:
       - COLLABORA_DOMAIN=collabora.${DOMAIN}
       - WOPI_DOMAIN=cloud.${DOMAIN}
       - COLLABORATION_APP_ADDR=https://collabora.${DOMAIN}
-      - COLLABORATION_WOPI_SRC=https://cloud.${DOMAIN}
+      # WOPI_SRC: URL OpenCloud embeds in WOPI tokens for Collabora's server-side callbacks.
+      # Using the internal container address avoids DNS resolution and self-signed cert issues.
+      # Collabora calls this server-side (not the browser). For production with real DNS +
+      # valid certs, change to https://cloud.${DOMAIN}.
+      - COLLABORATION_WOPI_SRC=http://opencloud:9200
       # Skip TLS for self-signed cert on Collabora (test server only)
       - COLLABORATION_APP_INSECURE=${OC_INSECURE:-false}
       # Disable built-in TLS (Traefik handles it)
@@ -129,7 +133,12 @@ services:
       - aliasgroup1=https://cloud.${DOMAIN}:443
       - username=admin
       - password=${OC_ADMIN_PASSWORD}
-      - extra_params=--o:ssl.enable=false --o:ssl.termination=true --o:storage.wopi.host[0]=https://cloud.${DOMAIN}
+      # storage.wopi.host[0]: allow the internal OpenCloud container as WOPI host.
+      # Collabora makes server-side CheckFileInfo/GetFile calls to opencloud:9200 directly
+      # (container-to-container on opencloud-net) rather than routing through Traefik.
+      # This avoids DNS resolution issues and self-signed cert verification on the test server.
+      # For production (real DNS + valid certs): change to https://cloud.DOMAIN.
+      - extra_params=--o:ssl.enable=false --o:ssl.termination=true --o:storage.wopi.host[0]=http://opencloud:9200
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.collabora.rule=Host(`collabora.${DOMAIN}`)"
