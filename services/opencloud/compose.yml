@@ -59,6 +59,9 @@ services:
       - COLLABORATION_WOPI_SRC=http://opencloud:9200
       # Skip TLS for self-signed cert on Collabora (test server only)
       - COLLABORATION_APP_INSECURE=${OC_INSECURE:-false}
+      # Disable WOPI proof key verification (Collabora has no proof key by default;
+      # remove for production if Collabora proof_key is configured)
+      - COLLABORATION_APP_PROOF_DISABLE=${OC_INSECURE:-false}
       # Disable built-in TLS (Traefik handles it)
       # Set OC_INSECURE=true in .env when using self-signed certs (test server only)
       - OC_INSECURE=${OC_INSECURE:-false}
