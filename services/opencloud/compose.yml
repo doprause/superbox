@@ -138,7 +138,7 @@ services:
       # (container-to-container on opencloud-net) rather than routing through Traefik.
       # This avoids DNS resolution issues and self-signed cert verification on the test server.
       # For production (real DNS + valid certs): change to https://cloud.DOMAIN.
-      - extra_params=--o:ssl.enable=false --o:ssl.termination=true --o:storage.wopi.host[0]=http://opencloud:9200
+      - extra_params=--o:ssl.enable=false --o:ssl.termination=true --o:storage.wopi.host[0]=opencloud
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.collabora.rule=Host(`collabora.${DOMAIN}`)"
