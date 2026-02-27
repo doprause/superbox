@@ -67,6 +67,7 @@ services:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
       - HOMEPAGE_VAR_DOMAIN=${DOMAIN}
+      - HOMEPAGE_ALLOWED_HOSTS=${DOMAIN}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.homepage.rule=Host(`${DOMAIN}`) || Host(`www.${DOMAIN}`)"
