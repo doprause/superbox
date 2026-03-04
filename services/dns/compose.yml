@@ -1,0 +1,49 @@
+# =============================================================================
+# Superbox DNS Module — AdGuard Home
+# LAN-wide DNS resolver with ad/tracker blocking and wildcard domain rewrites.
+# Eliminates the need for per-device hosts file entries.
+#
+# After first start, log in at https://dns.DOMAIN and add DNS rewrites:
+#   Filters → DNS rewrites → Add rewrite:
+#     *.DOMAIN  →  <server LAN IP>
+#     DOMAIN    →  <server LAN IP>
+# Then set DOMAIN as the DNS server in your router's DHCP settings.
+# =============================================================================
+
+networks:
+  traefik-net:
+    external: true
+
+services:
+
+  adguardhome:
+    image: adguard/adguardhome:latest
+    container_name: adguardhome
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - traefik-net
+    ports:
+      # DNS — must be bound on host so LAN devices can use this as their resolver
+      - "53:53/udp"
+      - "53:53/tcp"
+    volumes:
+      - ../../data/adguardhome/conf:/opt/adguardhome/conf
+      - ../../data/adguardhome/work:/opt/adguardhome/work
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.adguardhome.rule=Host(`dns.${DOMAIN}`)"
+      - "traefik.http.routers.adguardhome.entrypoints=websecure"
+      - "traefik.http.routers.adguardhome.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.adguardhome.middlewares=chain-internal@file"
+      - "traefik.http.services.adguardhome.loadbalancer.server.port=3000"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.superbox.module=dns"

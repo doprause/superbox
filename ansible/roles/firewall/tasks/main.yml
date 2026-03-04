@@ -66,6 +66,24 @@
     - "138"
   tags: [firewall, samba]
 
+- name: Allow DNS UDP (LAN only — for AdGuard Home)
+  community.general.ufw:
+    rule: allow
+    port: "53"
+    proto: udp
+    src: "{{ lan_subnet | default('192.168.0.0/16') }}"
+    comment: DNS UDP (AdGuard Home)
+  tags: [firewall, dns]
+
+- name: Allow DNS TCP (LAN only — for AdGuard Home)
+  community.general.ufw:
+    rule: allow
+    port: "53"
+    proto: tcp
+    src: "{{ lan_subnet | default('192.168.0.0/16') }}"
+    comment: DNS TCP (AdGuard Home)
+  tags: [firewall, dns]
+
 - name: Enable UFW
   community.general.ufw:
     state: enabled

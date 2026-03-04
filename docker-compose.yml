@@ -44,6 +44,12 @@ include:
   - ./services/backup/compose.yml
 
   # -------------------------------------------------------------------------
+  # OPTIONAL — LAN DNS resolver with ad blocking and wildcard domain rewrites
+  # Eliminates per-device hosts file entries for *.DOMAIN
+  # -------------------------------------------------------------------------
+  - ./services/dns/compose.yml
+
+  # -------------------------------------------------------------------------
   # OPTIONAL — self-hosted password manager (Bitwarden Lite)
   # -------------------------------------------------------------------------
   - ./services/passwords/compose.yml

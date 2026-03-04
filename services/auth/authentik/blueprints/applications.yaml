@@ -63,6 +63,23 @@ entries:
       open_in_new_tab: true
 
   # ---------------------------------------------------------------------------
+  # AdGuard Home
+  # ---------------------------------------------------------------------------
+  - model: authentik_core.application
+    state: present
+    identifiers:
+      slug: adguardhome
+    attrs:
+      name: AdGuard Home
+      slug: adguardhome
+      provider: !Find [authentik_providers_proxy.proxyprovider, [name, AdGuard Home Forward Auth]]
+      meta_launch_url: !Format ["https://dns.%s", !Env "DOMAIN"]
+      meta_description: LAN DNS resolver and ad blocker
+      group: Management
+      policy_engine_mode: any
+      open_in_new_tab: true
+
+  # ---------------------------------------------------------------------------
   # Homepage
   # ---------------------------------------------------------------------------
   - model: authentik_core.application

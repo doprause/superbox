@@ -40,6 +40,12 @@
 
 
 - Management:
+    - AdGuard Home:
+        icon: adguard-home.png
+        href: "https://dns.{{HOMEPAGE_VAR_DOMAIN}}"
+        description: LAN DNS resolver and ad blocker
+        ping: "https://dns.{{HOMEPAGE_VAR_DOMAIN}}"
+
     - Portainer:
         icon: portainer.png
         href: "https://portainer.{{HOMEPAGE_VAR_DOMAIN}}"

@@ -70,7 +70,32 @@
     - { key: fs.file-max,                                value: "2097152" }
   tags: [sysctl]
 
+- name: Disable systemd-resolved stub listener to free port 53 for AdGuard Home
+  ansible.builtin.copy:
+    dest: /etc/systemd/resolved.conf.d/superbox-adguard.conf
+    content: |
+      [Resolve]
+      DNSStubListener=no
+      DNS=9.9.9.9 1.1.1.1
+    mode: '0644'
+  notify: Restart systemd-resolved
+  tags: [dns]
+
+- name: Point resolv.conf at resolved runtime socket (not stub)
+  ansible.builtin.file:
+    src: /run/systemd/resolve/resolv.conf
+    dest: /etc/resolv.conf
+    state: link
+    force: true
+  tags: [dns]
+
 - name: Set timezone
   community.general.timezone:
     name: "{{ lookup('env', 'TZ') | default('Europe/Berlin') }}"
   tags: [timezone]
+
+handlers:
+  - name: Restart systemd-resolved
+    ansible.builtin.systemd:
+      name: systemd-resolved
+      state: restarted

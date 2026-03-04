@@ -264,6 +264,7 @@ env_set_if_empty "GRAFANA_ADMIN_PASSWORD"    "$(gen_password)"
 env_set_if_empty "GRAFANA_OAUTH_SECRET"      "$(gen_secret)"
 env_set_if_empty "FILEBROWSER_ADMIN_PASSWORD" "$(gen_password)"
 env_set_if_empty "BACKUP_PASSPHRASE"         "$(gen_secret)"
+env_set_if_empty "ADGUARD_PASSWORD"          "$(gen_password)"
 
 # ---------------------------------------------------------------------------
 # 4. Create data directory tree
@@ -293,6 +294,8 @@ DATA_DIRS=(
   "data/backup/config"
   "data/backup/restore"
   "data/passwords"
+  "data/adguardhome/conf"
+  "data/adguardhome/work"
 )
 
 for dir in "${DATA_DIRS[@]}"; do
@@ -324,6 +327,76 @@ else
 fi
 mkdir -p "$FB_DB_DIR"
 log "Created data/filebrowser/database/"
+
+# ---------------------------------------------------------------------------
+# AdGuard Home — pre-seed config to skip the setup wizard
+# ---------------------------------------------------------------------------
+AGH_CONFIG="$ROOT_DIR/data/adguardhome/conf/AdGuardHome.yaml"
+if [ ! -f "$AGH_CONFIG" ]; then
+  AGH_PASSWORD=$(env_get "ADGUARD_PASSWORD")
+  # Generate bcrypt hash using Docker + Alpine (no host dependencies needed)
+  log "Generating AdGuard Home password hash (this may take a moment)..."
+  AGH_HASH=$(docker run --rm alpine sh -c \
+    "apk add --quiet apache2-utils 2>/dev/null && htpasswd -bnBC 10 '' '${AGH_PASSWORD}' | tr -d ':\n'" \
+    2>/dev/null) || { warn "Could not generate AdGuard Home password hash — start Docker first"; AGH_HASH=""; }
+  # Auto-detect server LAN IP for DNS rewrites
+  SERVER_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="src") print $(i+1)}')
+  DOMAIN_VAL=$(env_get "DOMAIN")
+  cat > "$AGH_CONFIG" <<EOF
+http:
+  address: 0.0.0.0:3000
+  session_ttl: 720h
+users:
+  - name: admin
+    password: '${AGH_HASH}'
+auth_attempts: 5
+block_auth_min: 15
+dns:
+  bind_hosts:
+    - 0.0.0.0
+  port: 53
+  upstream_dns:
+    - https://dns10.quad9.net/dns-query
+    - https://cloudflare-dns.com/dns-query
+  bootstrap_dns:
+    - 9.9.9.10
+    - 149.112.112.10
+  enable_dnssec: true
+filtering:
+  rewrites:
+    - domain: '*.${DOMAIN_VAL}'
+      answer: '${SERVER_IP}'
+    - domain: '${DOMAIN_VAL}'
+      answer: '${SERVER_IP}'
+  filtering_enabled: true
+EOF
+  log "Created AdGuard Home config (admin password set, DNS rewrites pre-configured)"
+else
+  log "AdGuard Home config already exists — skipping"
+fi
+
+# ---------------------------------------------------------------------------
+# systemd-resolved — disable stub listener so AdGuard Home can bind port 53
+# ---------------------------------------------------------------------------
+if systemctl is-active systemd-resolved >/dev/null 2>&1; then
+  RESOLVED_CONF="/etc/systemd/resolved.conf.d/superbox-adguard.conf"
+  if [ ! -f "$RESOLVED_CONF" ]; then
+    mkdir -p /etc/systemd/resolved.conf.d
+    cat > "$RESOLVED_CONF" <<'EOF'
+[Resolve]
+# Disable stub listener so AdGuard Home can bind to port 53
+DNSStubListener=no
+# Fall back to public DNS if AdGuard Home is unreachable
+DNS=9.9.9.9 1.1.1.1
+EOF
+    systemctl restart systemd-resolved 2>/dev/null || warn "Could not restart systemd-resolved — run as root"
+    # Point resolv.conf at the real resolved socket (not the stub)
+    ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf 2>/dev/null || true
+    log "Disabled systemd-resolved stub listener (freed port 53 for AdGuard Home)"
+  else
+    log "systemd-resolved stub listener already disabled — skipping"
+  fi
+fi
 
 # Set ownership — default all dirs to PUID:PGID
 chown -R "${PUID}:${PGID}" "$ROOT_DIR/data" 2>/dev/null || \
