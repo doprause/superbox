@@ -264,6 +264,7 @@ env_set_if_empty "GRAFANA_ADMIN_PASSWORD"    "$(gen_password)"
 env_set_if_empty "GRAFANA_OAUTH_SECRET"      "$(gen_secret)"
 env_set_if_empty "FILEBROWSER_ADMIN_PASSWORD" "$(gen_password)"
 env_set_if_empty "BACKUP_PASSPHRASE"         "$(gen_secret)"
+env_set_if_empty "DUPLICATI_PASSWORD"        "$(gen_password)"
 env_set_if_empty "ADGUARD_PASSWORD"          "$(gen_password)"
 
 # ---------------------------------------------------------------------------

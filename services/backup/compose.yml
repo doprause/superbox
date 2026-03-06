@@ -47,6 +47,7 @@ services:
       # Optional: passphrase for encrypted backups
       - SETTINGS_ENCRYPTION_KEY=${BACKUP_PASSPHRASE}
       - DUPLICATI__WEBSERVICE_ALLOWEDHOSTNAMES=*
+      - DUPLICATI__WEBSERVICE_PASSWORD=${DUPLICATI_PASSWORD}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.duplicati.rule=Host(`backup.${DOMAIN}`)"
